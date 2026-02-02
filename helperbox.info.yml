@@ -3,7 +3,8 @@ type: module
 description: "Provides a collection of helper utilities including custom blocks, views helpers, field formatters, theme suggestions, preprocess hooks and API tools."
 core_version_requirement: ^11
 package: Custom
-version: 11.2.5
+version: 11.3.1
+configure: helperbox.settings
 dependencies:
   - drupal:system
   - drupal:block

@@ -7,10 +7,14 @@
 
 use Drupal\Core\Field\Entity\BaseFieldOverride;
 use Drupal\language\Entity\ContentLanguageSettings;
+use Drupal\node\Entity\NodeType;
+use Drupal\Core\Language\LanguageInterface;
 
 // function helperbox_install() {}
 // function helperbox_update_8001() {
-//     process_translatable_content_types(['faq', 'blog']);
+//     process_translatable_menu_link_content();
+//     process_translatable_paragraph_type();
+//     process_translatable_content_types();
 // }
 
 /**
@@ -65,33 +69,52 @@ function process_translatable_paragraph_type() {
 
 
 /**
- * Enable translation for specific content types and their title field.
+ * Enable translation for specific content types and base fields.
+ *
+ * @param array|null $translatable_content_types
+ *   Example: ['faq', 'blog']
+ *   If empty or NULL, applies to ALL content types.
  */
-function process_translatable_content_types($translatable_content_types) {
-    foreach ($translatable_content_types as $type) {
-        try {
-            // Enable content translation for this content type.
+function process_translatable_content_types(array $translatable_content_types = []) {
+    try {
+        // If no content types provided, load all node bundles.
+        if (empty($translatable_content_types)) {
+            $translatable_content_types = array_keys(NodeType::loadMultiple());
+        }
+
+        foreach ($translatable_content_types as $type) {
+            // -----------------------------
+            // Enable content translation
+            // -----------------------------
             $settings = ContentLanguageSettings::loadByEntityTypeBundle('node', $type);
+
             if (!$settings) {
                 $settings = ContentLanguageSettings::create([
                     'target_entity_type_id' => 'node',
                     'target_bundle' => $type,
                 ]);
             }
-            $settings->setThirdPartySetting('content_translation', 'enabled', TRUE);
-            $settings->save();
 
-            // List of base fields we want translatable.
+            $settings
+                ->setThirdPartySetting('content_translation', 'enabled', TRUE)
+                ->setDefaultLangcode(LanguageInterface::LANGCODE_SITE_DEFAULT)
+                ->setLanguageAlterable(TRUE)
+                ->save();
+
+            // -----------------------------
+            // Base fields to translate
+            // -----------------------------
             $base_fields = [
-                'title',   // Node title
+                'title', // Node title
+                'path',  // URL alias
                 'status',  // Published/unpublished
-                'path',    // URL alias
-                // 'metatag', // Metatag field
+                // 'metatag', // Only if metatag module uses base field (usually config/entity)
             ];
 
-            // Enable translation for each base field.
             foreach ($base_fields as $field_name) {
-                $override = BaseFieldOverride::load("node.{$type}.{$field_name}");
+                $override_id = "node.{$type}.{$field_name}";
+                $override = BaseFieldOverride::load($override_id);
+
                 if (!$override) {
                     $override = BaseFieldOverride::create([
                         'entity_type' => 'node',
@@ -99,11 +122,19 @@ function process_translatable_content_types($translatable_content_types) {
                         'field_name' => $field_name,
                     ]);
                 }
-                $override->setTranslatable(TRUE);
-                $override->save();
+
+                // Only save if needed.
+                if (!$override->isTranslatable()) {
+                    // $override->setTranslatable(TRUE)->save();
+                    $override->setTranslatable(TRUE);
+                    $override->save();
+                }
             }
-        } catch (\Throwable $th) {
-            //throw $th;
         }
+    } catch (\Throwable $e) {
+        \Drupal::logger('content_translation')
+            ->error('Translation setup failed: @message', [
+                '@message' => $e->getMessage(),
+            ]);
     }
 }

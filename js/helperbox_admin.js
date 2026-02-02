@@ -7,8 +7,7 @@
              * 
              */
             const checkFormId = [
-                'config-pages-fimi-settings-form',
-                'node-understanding-fimi-edit-form',
+                'config-pages-site-settings-form',
             ];
             checkFormId.forEach(elementFormId => {
                 once('helperboxadminjs', '#' + elementFormId, context).forEach(() => {

@@ -250,7 +250,7 @@ class FormField {
      */
     private static function checkNodeFields(array &$form, $form_state, $node,) {
         // Get the defined field rules
-        $rules = ConfigSettings::$nodefieldrules;
+        $rules = HelperboxSettings::$nodefieldrules;
         $nid    = $node->id();
         $bundle = $node->bundle();
 
@@ -355,7 +355,7 @@ class FormField {
      */
     private static function checkAllFields(array &$form, $form_state, $entity) {
         // Get the defined field rules
-        $fieldrules = ConfigSettings::$allfieldrules;
+        $fieldrules = HelperboxSettings::$allfieldrules;
 
         // 
         $entity_type = $entity->getEntityTypeId();         // Get Entity type
@@ -429,7 +429,7 @@ class FormField {
      *   If $form is not an array or $nid is invalid.
      */
     private static function checkFieldsByFormId(&$form, $form_state, $form_id) {
-        $formIdFieldsrules = ConfigSettings::$formIdFieldsrules;
+        $formIdFieldsrules = HelperboxSettings::$formIdFieldsrules;
         if (isset($formIdFieldsrules[$form_id]) && is_array($formIdFieldsrules[$form_id])) {
             foreach ($formIdFieldsrules[$form_id] as $field_name => $check) {
                 if (is_bool($check)) {
@@ -496,53 +496,57 @@ class FormField {
         // 1. Validate title (unique per type)
         // -----------------------------
         $title_raw = $form_state->getValue('title');
-        $title = is_array($title_raw) ? ($title_raw[0]['value'] ?? '') : $title_raw;
-        $title = trim($title);
+        if ($title_raw) {
+            $title = is_array($title_raw) ? ($title_raw[0]['value'] ?? '') : $title_raw;
+            $title = trim($title);
 
-        if ($title !== '') {
-            $query = \Drupal::entityQuery('node')
-                ->condition('type', $type)
-                ->condition('title', $title)
-                ->accessCheck(TRUE);
+            if ($title !== '') {
+                $query = \Drupal::entityQuery('node')
+                    ->condition('type', $type)
+                    ->condition('title', $title)
+                    ->accessCheck(TRUE);
 
-            if (!$node->isNew()) {
-                $query->condition('nid', $node->id(), '!=');
-            }
+                if (!$node->isNew()) {
+                    $query->condition('nid', $node->id(), '!=');
+                }
 
-            $count = (int) $query->count()->execute();
+                $count = (int) $query->count()->execute();
 
-            if ($count > 0) {
-                $form_state->setErrorByName(
-                    'title',
-                    t('A node with the title "@value" already exists.', ['@value' => $title])
-                );
+                if ($count > 0) {
+                    $form_state->setErrorByName(
+                        'title',
+                        t('A node with the title "@value" already exists.', ['@value' => $title])
+                    );
+                }
             }
         }
+
 
         // -----------------------------
         // 2. Validate field_country_code_3digit (unique per type)
         // -----------------------------
         $code_raw = $form_state->getValue('field_country_code_3digit');
-        $code = is_array($code_raw) ? ($code_raw[0]['value'] ?? '') : $code_raw;
-        $code = trim($code);
+        if ($code_raw) {
+            $code = is_array($code_raw) ? ($code_raw[0]['value'] ?? '') : $code_raw;
+            $code = trim($code);
+            if ($code !== '') {
+                $query = \Drupal::entityQuery('node')
+                    ->condition('type', $type)
+                    ->condition('field_country_code_3digit', $code)
+                    ->accessCheck(TRUE);
 
-        if ($code !== '') {
-            $query = \Drupal::entityQuery('node')
-                ->condition('type', $type)
-                ->condition('field_country_code_3digit', $code)
-                ->accessCheck(TRUE);
+                if (! $node->isNew()) {
+                    $query->condition('nid', $node->id(), '!=');
+                }
 
-            if (! $node->isNew()) {
-                $query->condition('nid', $node->id(), '!=');
-            }
+                $count = (int) $query->count()->execute();
 
-            $count = (int) $query->count()->execute();
-
-            if ($count > 0) {
-                $form_state->setErrorByName(
-                    'field_country_code_3digit',
-                    t('A node with the Country Code "@value" already exists.', ['@value' => $code])
-                );
+                if ($count > 0) {
+                    $form_state->setErrorByName(
+                        'field_country_code_3digit',
+                        t('A node with the Country Code "@value" already exists.', ['@value' => $code])
+                    );
+                }
             }
         }
     }
@@ -557,7 +561,7 @@ class FormField {
      */
     public static function maxNodeValidate($type) {
 
-        $max_nodes = ConfigSettings::$maxContentNodes;
+        $max_nodes = HelperboxSettings::$maxContentNodes;
 
         if (isset($max_nodes[$type]) && $max_nodes[$type] > 0) {
             $existing_count = (int) \Drupal::entityQuery('node')

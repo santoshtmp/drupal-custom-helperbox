@@ -3,11 +3,26 @@
 namespace Drupal\helperbox\Helper;
 
 /**
- * Config Settings class
+ * Helperbox Config Settings class
  *
  * @package Drupal\helperbox\Helper
  */
-class ConfigSettings {
+class HelperboxSettings {
+
+    /**
+     * 
+     */
+    public static function get_config($field_name = '') {
+        try {
+            $config = \Drupal::config('helperbox.settings');
+            if (!$field_name) {
+                return $config;
+            }
+            return $config->get($field_name);
+        } catch (\Throwable $th) {
+            return false;
+        }
+    }
 
     /**
      * Rules for field access based on entity type and bundle.

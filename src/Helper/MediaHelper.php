@@ -125,7 +125,8 @@ class MediaHelper {
                                 }
                                 // 
                                 $media_info = [];
-                                $media_info['media_id'] = $media_id;
+                                $media_info['mid'] = $media_id;
+                                $media_info['fid'] = $media_entity->id();
                                 $media_info['media_type'] = $media_type;
                                 $media_info['file_url'] = $file_url;
                                 $media_info['file_path'] = $file_path;
@@ -138,6 +139,8 @@ class MediaHelper {
                                 $media_info['thumbnail'] = $thumbnail_url;
                                 $media_info['image_style'] = $image_style;
                                 $media_info['image_loading'] = $image_loading;
+                                $media_info['alt_text'] = $media->$field_name->alt ?? $media_entity->label();
+                                $media_info['title_text'] = $media->$field_name->title ?? $media_entity->label();
 
                                 //   
                                 $media_infos[] = $media_info;

@@ -1,0 +1,41 @@
+helperbox.settings:
+  type: config_object
+  label: 'Custom Helperbox settings'
+  mapping:
+    enable_helperbox:
+      type: boolean
+      label: 'Enable Helperbox'
+    enable_media_custom_thumbnail:
+      type: boolean
+      label: 'Enable custom media thumbnail'
+    helperbox_text:
+      type: text
+      label: 'Helperbox text'
+views.field.helperbox_renderblock:
+  type: views_field
+  label: 'Helperbox Render Block field'
+  mapping:
+    # Your module's custom settings (from earlier warnings)
+    block_type:
+      type: string
+      label: 'Block type'
+    block_plugin_id:
+      type: string
+      label: 'Block plugin ID'
+    view_id:
+      type: string
+      label: 'View ID'
+    display_id:
+      type: string
+      label: 'Display ID'
+    # If the plugin has more custom keys (check the plugin class's defineOptions() method), add them here too
+
+views.field.helperbox_custom_text:
+  type: views_field
+  label: 'Helperbox Custom Text field'
+  mapping:
+    # Custom key(s)
+    custom_text:
+      type: text
+      label: 'Custom text content'
+    # Add others if present in the plugin's options

@@ -106,7 +106,8 @@ class CustomText extends FieldPluginBase {
     public function render(ResultRow $values) {
         $custom_text = $this->options['custom_text'];
         $custom_text = self::filterHtmlRemoveTags($custom_text);
-        $tokens = $this->getRenderTokens([]);
+        // $tokens = $this->getRenderTokens([]);
+        $tokens = $this->getRenderTokens($values);
         $custom_text =  $this->viewsTokenReplace($custom_text, $tokens);
         return ViewsRenderPipelineMarkup::create($custom_text);
     }

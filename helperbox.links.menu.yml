@@ -1,0 +1,6 @@
+helperbox.settings:
+  title: 'Custom Helperbox'
+  description: 'Settings for Custom Helperbox module'
+  parent: system.admin_config_development
+  route_name: helperbox.settings
+  weight: 100

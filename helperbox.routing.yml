@@ -1,3 +1,10 @@
+helperbox.settings:
+  path: '/admin/config/content/customhelperbox'
+  defaults:
+    _form: '\Drupal\helperbox\Form\HelperboxSettingsForm'
+    _title: 'Custom Helperbox settings'
+  requirements:
+    _permission: 'administer site configuration'
 helperbox.api_test:
   path: '/api/testhelperbox'
   defaults:
