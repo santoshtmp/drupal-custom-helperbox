@@ -1,41 +1,435 @@
 helperbox.settings:
   type: config_object
-  label: 'Custom Helperbox settings'
+  label: "Custom Helperbox settings"
   mapping:
     enable_helperbox:
       type: boolean
-      label: 'Enable Helperbox'
+      label: "Enable Helperbox"
     enable_media_custom_thumbnail:
       type: boolean
-      label: 'Enable custom media thumbnail'
+      label: "Enable custom media thumbnail"
     helperbox_text:
       type: text
-      label: 'Helperbox text'
+      label: "Helperbox text"
+    cdn:
+      type: mapping
+      label: "CDN Configuration"
+      mapping:
+        cdn_select2:
+          type: boolean
+          label: "Enable select2 from CDN"
+        cdn_lightgallery:
+          type: boolean
+          label: "Enable lightgallery from CDN"
+
+block.settings.helperbox_menu_block:
+  type: block_settings
+  label: "Helperbox Menu Block settings"
+  mapping:
+    menu_layout:
+      type: string
+      label: "Menu layout"
+    menu_title:
+      type: label
+      label: "Menu title"
+    menu_type:
+      type: string
+      label: "Menu type"
+    menu_items:
+      type: sequence
+      label: "Menu items"
+      sequence:
+        type: string
+    background_image:
+      type: integer
+      label: "Background image (media ID)"
+    background_image_style:
+      type: string
+      label: "Background image style"
+    menu_levels:
+      type: integer
+      label: "Menu levels"
+    social_link_title:
+      type: string
+      label: "Social link title"
+
+block.settings.helperbox_repeated_content_block:
+  type: block_settings
+  label: "Helperbox Repeated Content Block settings"
+  mapping:
+    block_layout:
+      type: string
+      label: "Block layout"
+    section_title:
+      type: string
+      label: "Section title"
+    section_sub_title:
+      type: string
+      label: "Section sub title"
+    content_list:
+      type: sequence
+      label: "Content list"
+      sequence:
+        type: mapping
+        mapping:
+          content:
+            type: mapping
+            mapping:
+              title:
+                type: string
+                label: "Title"
+              sub_title:
+                type: string
+                label: "Sub title"
+              description:
+                type: mapping
+                mapping:
+                  value:
+                    type: text
+                    label: "Description value"
+                  format:
+                    type: string
+                    label: "Description format"
+              feature_image:
+                type: integer
+                label: "Feature image"
+              feature_image_style:
+                type: string
+                label: "Feature image style"
+          weight:
+            type: integer
+            label: "Weight"
+    other_meta_info:
+      type: mapping
+      mapping:
+        background_image:
+          type: integer
+          label: "Background image"
+        background_image_style:
+          type: string
+          label: "Background image style"
+
+block.settings.helperbox_banner_block:
+  type: block_settings
+  label: "Helperbox Banner Block settings"
+  mapping:
+    section_title:
+      type: string
+      label: "Section title"
+    section_sub_title:
+      type: string
+      label: "Section sub title"
+    section_body:
+      type: mapping
+      mapping:
+        value:
+          type: text
+          label: "Section body value"
+        format:
+          type: string
+          label: "Section body format"
+    feature_video:
+      type: integer
+      label: "Feature video"
+    feature_image:
+      type: integer
+      label: "Feature image"
+    feature_image_style:
+      type: string
+      label: "Feature image style"
+    cta_links:
+      type: sequence
+      label: "CTA links"
+      sequence:
+        type: mapping
+        mapping:
+          label:
+            type: string
+            label: "Label"
+          url:
+            type: string
+            label: "URL"
+          weight:
+            type: integer
+            label: "Weight"
+    video_links:
+      type: sequence
+      label: "Video links"
+      sequence:
+        type: mapping
+        mapping:
+          url:
+            type: string
+            label: "URL"
+          weight:
+            type: integer
+            label: "Weight"
+    block_layout:
+      type: string
+      label: "Block layout"
+    section_highlight:
+      type: mapping
+      mapping:
+        value:
+          type: text
+          label: "Section highlight value"
+        format:
+          type: string
+          label: "Section highlight format"
+    section_highlight_enable:
+      type: string
+      label: "Section highlight enabled"
+    background_image:
+      type: integer
+      label: "Background image"
+    background_image_style:
+      type: string
+      label: "Background image style"
+    secondary_body_enable:
+      type: string
+      label: "Secondary body enabled"
+    section_body_title_2:
+      type: string
+      label: "Section body title 2"
+    section_body_desc_2:
+      type: mapping
+      mapping:
+        value:
+          type: text
+          label: "Section body description 2 value"
+        format:
+          type: string
+          label: "Section body description 2 format"
+    lottie_file:
+      type: integer
+      label: "Lottie file"
+
+block.settings.helperbox_contact_block:
+  type: block_settings
+  label: "Helperbox Contact Block settings"
+  mapping:
+    block_layout:
+      type: string
+      label: "Block layout"
+    section_title:
+      type: string
+      label: "Section title"
+    section_body:
+      type: mapping
+      mapping:
+        value:
+          type: text
+          label: "Section body value"
+        format:
+          type: string
+          label: "Section body format"
+    defult_social_links:
+      type: boolean
+      label: "Default social links"
+    defult_contact_info:
+      type: boolean
+      label: "Default contact info"
+    contact_info_fieldset:
+      type: mapping
+      mapping:
+        address:
+          type: string
+          label: "Address"
+        phone_number:
+          type: string
+          label: "Phone number"
+        email:
+          type: string
+          label: "Email"
+    selected_webform:
+      type: string
+      label: "Selected webform"
+    feature_image:
+      type: integer
+      label: "Feature image"
+    find_us_title:
+      type: string
+      label: "Find us title"
+    contact_us_title:
+      type: string
+      label: "Contact us title"
+    social_links:
+      type: sequence
+      label: "Social links"
+      sequence:
+        type: mapping
+        mapping:
+          social_type:
+            type: string
+            label: "Social type"
+          url:
+            type: string
+            label: "URL"
+          weight:
+            type: integer
+            label: "Weight"
+
+block.settings.helperbox_content_type_block:
+  type: block_settings
+  label: "Helperbox Content Type Block settings"
+  mapping:
+    section_title:
+      type: string
+      label: "Section title"
+    section_sub_title:
+      type: string
+      label: "Section sub title"
+    block_layout:
+      type: string
+      label: "Block layout"
+    show_edit_btn:
+      type: boolean
+      label: "Show edit button"
+    custom_content_node:
+      type: mapping
+      mapping:
+        enable:
+          type: boolean
+          label: "Enable custom content node"
+        select_node:
+          type: string
+          label: "Select node"
+    node_view_label:
+      type: string
+      label: "Node view label"
+    view_all_cta:
+      type: sequence
+      label: "View all CTA"
+      sequence:
+        type: mapping
+        mapping:
+          label:
+            type: string
+            label: "Label"
+          url:
+            type: string
+            label: "URL"
+    other_meta_info:
+      type: mapping
+      mapping:
+        background_image:
+          type: integer
+          label: "Background image"
+        background_image_style:
+          type: string
+          label: "Background image style"
+
 views.field.helperbox_renderblock:
   type: views_field
-  label: 'Helperbox Render Block field'
+  label: "Helperbox Render Block field"
   mapping:
     # Your module's custom settings (from earlier warnings)
     block_type:
       type: string
-      label: 'Block type'
+      label: "Block type"
     block_plugin_id:
       type: string
-      label: 'Block plugin ID'
+      label: "Block plugin ID"
     view_id:
       type: string
-      label: 'View ID'
+      label: "View ID"
     display_id:
       type: string
-      label: 'Display ID'
+      label: "Display ID"
     # If the plugin has more custom keys (check the plugin class's defineOptions() method), add them here too
 
 views.field.helperbox_custom_text:
   type: views_field
-  label: 'Helperbox Custom Text field'
+  label: "Helperbox Custom Text field"
   mapping:
     # Custom key(s)
     custom_text:
       type: text
-      label: 'Custom text content'
+      label: "Custom text content"
     # Add others if present in the plugin's options
+
+views.field.helperbox_add_media:
+  type: views_field
+  label: "Helperbox Add Media field"
+  mapping:
+    media_type:
+      type: string
+      label: "Media type"
+    image_style:
+      type: string
+      label: "Image style"
+    media_id:
+      type: string
+      label: "Media ID"
+
+views.field.helperbox_count_node:
+  type: views_field
+  label: "Helperbox Count Node field"
+  mapping:
+    node_content_type:
+      type: string
+      label: "Node content type"
+    condition_count:
+      type: integer
+      label: "Condition count"
+    set_condition:
+      type: sequence
+      label: "Set conditions"
+      sequence:
+        type: mapping
+        mapping:
+          node_field:
+            type: string
+            label: "Node field"
+          helperbox_other_fields:
+            type: string
+            label: "Other fields"
+          helperbox_operation:
+            type: string
+            label: "Operation"
+          node_value:
+            type: string
+            label: "Node value"
+          custom_value:
+            type: string
+            label: "Custom value"
+
+field.widget.settings.helperbox_date_time_widget:
+  type: mapping
+  label: 'Helperbox Date Time widget settings'
+  mapping:
+    increment:
+      type: string
+      label: 'Time increment'
+    date_order:
+      type: string
+      label: 'Date part order'
+    time_type:
+      type: string
+      label: 'Time type'
+    time_optional:
+      type: boolean
+      label: 'Make time optional'
+    value_only_time:
+      type: boolean
+      label: 'Show time only'
+    start_year_range:
+      type: string
+      label: 'Start year range'
+    end_year_range:
+      type: string
+      label: 'End year range'
+    custom_start_year_range:
+      type: integer
+      label: 'Custom start year'
+    custom_end_year_range:
+      type: integer
+      label: 'Custom end year'
+
+field.formatter.settings.helperbox_fieldformat_daterange:
+  type: mapping
+  label: 'Helperbox Date Range formatter settings'
+  mapping:
+    helperbox_formatter:
+      type: boolean
+      label: 'Helperbox formatter'

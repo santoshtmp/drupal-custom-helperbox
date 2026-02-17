@@ -136,7 +136,8 @@ class RenderBlock extends FieldPluginBase {
             $view_id = $this->sanitizeValue($this->options['view_id']);
             $display_id = $this->sanitizeValue($this->options['display_id']);
             if ($view_id && $display_id) {
-                $rendered_block = GetBlock::get_rendered_views_block($view_id, $display_id);
+                $viewArgs = $this->view->args ?? [];
+                $rendered_block = GetBlock::get_rendered_views_block($view_id, $display_id, $viewArgs);
                 $additionalClass = 'innerblock-' . str_replace('_', '-', $view_id) . '-' . str_replace('_', '-', $display_id);
                 $dataView = $view_id . '-' . $display_id;
                 if (

@@ -37,7 +37,7 @@ class MediaHelper {
     }
 
     /**
-     * 
+     *
      */
     public static function get_media_field_name($media_type) {
         $field_name = 'field_media_file';
@@ -84,6 +84,10 @@ class MediaHelper {
                         $field_name = self::get_media_field_name($media_type);
                         if ($media && $media->hasField($field_name) && !$media->get($field_name)->isEmpty()) {
                             $media_entity = $media->get($field_name)->entity;
+
+                            $media_info = [];
+                            $media_info['media_type'] = $media_type;
+                            $media_info['mid'] = $media_id;
                             if ($media_entity instanceof File) {
                                 $file_url = \Drupal::service('file_url_generator')->generateAbsoluteString($media_entity->getFileUri());
                                 $file_path = \Drupal::service('file_url_generator')->generateString($media_entity->getFileUri());
@@ -123,11 +127,8 @@ class MediaHelper {
                                         }
                                     }
                                 }
-                                // 
-                                $media_info = [];
-                                $media_info['mid'] = $media_id;
+                                //
                                 $media_info['fid'] = $media_entity->id();
-                                $media_info['media_type'] = $media_type;
                                 $media_info['file_url'] = $file_url;
                                 $media_info['file_path'] = $file_path;
                                 $media_info['file_name'] = $media_entity->getFilename();
@@ -141,11 +142,8 @@ class MediaHelper {
                                 $media_info['image_loading'] = $image_loading;
                                 $media_info['alt_text'] = $media->$field_name->alt ?? $media_entity->label();
                                 $media_info['title_text'] = $media->$field_name->title ?? $media_entity->label();
-
-                                //   
-                                $media_infos[] = $media_info;
                             } else if ($media_type === 'remote_video') {
-                                // 
+                                //
                                 $oembed_url = $media->get($field_name)->value;
                                 $embed_html = $media->get($field_name)->view(['type' => 'oembed', 'label' => 'hidden']);
                                 $thumbnail = [];
@@ -155,16 +153,17 @@ class MediaHelper {
                                     $thumbnail['file_path'] = \Drupal::service('file_url_generator')->generateString($thumbnail_entity->getFileUri());
                                     $thumbnail['file_name'] =  $thumbnail_entity->getFilename();
                                 }
+                                $remote_embed_video = self::get_remote_embed_video($media_id);
                                 //
-                                $media_info = [];
-                                $media_info['media_type'] = $media_type;
-                                $media_info['file_url'] = $oembed_url;
+                                $media_info['file_url'] = $media_info['file_path'] = $oembed_url;
                                 $media_info['file_name'] = $media->label();
                                 $media_info['render_embed_html'] = \Drupal::service('renderer')->renderPlain($embed_html);
+                                $media_info['remote_embed_video'] = $remote_embed_video;
                                 $media_info['thumbnail'] =  $thumbnail;
-                                //   
-                                $media_infos[] = $media_info;
+                                //
                             }
+                            // other media info can be added here as needed
+                            $media_infos[] = $media_info;
                         }
                     }
                 }
@@ -177,7 +176,7 @@ class MediaHelper {
 
 
     /**
-     * 
+     *
      */
     public static function get_image_style_options() {
         $styles_optionlist = \Drupal\image\Entity\ImageStyle::loadMultiple(); // $styles_optionlist = \Drupal::entityTypeManager()->getStorage('image_style')->loadMultiple();
@@ -190,10 +189,75 @@ class MediaHelper {
     }
 
     /**
-     * 
+     * Get the proper embed URL for a remote video media entity with autoplay support.
+     *
+     * Supports YouTube, Vimeo, or any oEmbed provider.
+     *
+     * @param int $media_id
+     *   Media entity ID.
+     *
+     * @return string|null
+     *   Embed URL ready to use in an iframe, or NULL if not valid.
+     */
+    public static function get_remote_embed_video($media_id) {
+        try {
+            $media = Media::load($media_id);
+
+            if (!$media || $media->bundle() !== 'remote_video') {
+                return null;
+            }
+
+            $field_name = self::get_media_field_name('remote_video');
+            $url = $media->get($field_name)->value;
+
+            if (!$url) {
+                return null;
+            }
+
+            // YouTube
+            if (preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^\&\?\/]+)/', $url, $matches)) {
+                $video_id = $matches[1];
+
+                return [
+                    'embed_url' => 'https://www.youtube.com/embed/' . $video_id,
+                    'video_id' => $video_id,
+                    'type' => 'youtube',
+                ];
+                // return 'https://www.youtube.com/embed/' . $video_id;
+                // '?autoplay=1&mute=1&playsinline=1&rel=0';
+            }
+
+            // Vimeo
+            if (preg_match('/vimeo\.com\/(\d+)/', $url, $matches)) {
+                $video_id = $matches[1];
+                return [
+                    'embed_url' => 'https://player.vimeo.com/video/' . $video_id,
+                    'video_id' => $video_id,
+                    'type' => 'vimeo',
+                ];
+                // return 'https://player.vimeo.com/video/' . $video_id;
+                // '?autoplay=1&muted=1&loop=0&autopause=0';
+            }
+
+            // Fallback: return original URL (other oEmbed providers)
+            return [
+                'embed_url' => $url,
+                'video_id' => null,
+                'type' => 'oembed',
+            ];
+        } catch (\Throwable $th) {
+            UtilHelper::helperbox_error_log($th);
+        }
+
+        return null;
+    }
+
+
+    /**
+     *
      * Implements hook_entity_view().
      * https://api.drupal.org/api/drupal/core%21lib%21Drupal%21Core%21Entity%21entity.api.php/function/hook_entity_view/10
-     * 
+     *
      */
     public static function media_attached_style(array &$build, \Drupal\Core\Entity\EntityInterface $entity, $view_mode, $langcode) {
         // Only target media entities of type 'video' in 'media_library' view mode.
@@ -214,6 +278,6 @@ class MediaHelper {
         }
     }
     /**
-     * ------------ END ------------  
+     * ------------ END ------------
      */
 }

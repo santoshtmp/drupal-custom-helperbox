@@ -1,5 +1,5 @@
 helperbox.settings:
-  path: '/admin/config/content/customhelperbox'
+  path: '/admin/config/development/customhelperbox'
   defaults:
     _form: '\Drupal\helperbox\Form\HelperboxSettingsForm'
     _title: 'Custom Helperbox settings'

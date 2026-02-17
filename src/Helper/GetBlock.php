@@ -128,13 +128,14 @@ class GetBlock {
     /**
      * Get the fully rendered output of a Views block display.
      */
-    public static function get_rendered_views_block(string $view_id, string $display_id) {
+    public static function get_rendered_views_block(string $view_id, string $display_id, $previewArgs = []) {
         try {
             $view = Views::getView($view_id);
 
             if (!$view || !$view->access($display_id)) {
                 return []; // or throw exception / return empty array
             }
+            $render = $view->preview($display_id, $previewArgs);
 
             // Set the display (block_11, page_1, etc.)
             // $view->setDisplay($display_id);
@@ -147,7 +148,7 @@ class GetBlock {
             // This builds the full render array exactly as the block would appear
             // $render = $view->buildRenderable($display_id);
             // $render = $view->render($display_id);
-            $render = $view->preview($display_id, []);
+            // $render = $view->preview($display_id, []);
 
             // $render  = \Drupal::service('renderer')->renderPlain($render);
 

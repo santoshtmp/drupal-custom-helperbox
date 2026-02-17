@@ -47,6 +47,28 @@ class HelperboxSettingsForm extends ConfigFormBase {
 
     );
 
+    // // CDN Options
+    // // libraries from CDN
+    // $cdn_config = $config->get('cdn') ?: [];
+
+    // $form['cdn'] = [
+    //   '#type' => 'fieldset',
+    //   '#title' => $this->t('CDN Libraries'),
+    //   '#collapsible' => TRUE,
+    //   '#collapsed' => FALSE,
+    //   '#tree' => TRUE,
+    // ];
+    // $form['cdn']['cdn_select2'] = [
+    //   '#type' => 'checkbox',
+    //   '#title' => $this->t('Enable select2 library'),
+    //   '#default_value' => $cdn_config['cdn_select2'] ?? FALSE,
+    // ];
+    // $form['cdn']['cdn_lightgallery'] = [
+    //   '#type' => 'checkbox',
+    //   '#title' => $this->t('Enable lightgallery library'),
+    //   '#default_value' => $cdn_config['cdn_lightgallery'] ?? FALSE,
+    // ];
+
     return parent::buildForm($form, $form_state);
   }
 
@@ -58,6 +80,10 @@ class HelperboxSettingsForm extends ConfigFormBase {
 
     $this->config('helperbox.settings')
       ->set('enable_helperbox', $form_state->getValue('enable_helperbox'))
+      ->set('cdn', [
+        'cdn_select2' => $form_state->getValue(['cdn', 'cdn_select2']),
+        'cdn_lightgallery' => $form_state->getValue(['cdn', 'cdn_lightgallery']),
+      ])
       ->set('enable_media_custom_thumbnail', $form_state->getValue('enable_media_custom_thumbnail'))
       ->save();
   }

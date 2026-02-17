@@ -1,2 +1,5 @@
 enable_helperbox: true
 enable_media_custom_thumbnail: true
+cdn:
+  cdn_select2: false
+  cdn_lightgallery: false

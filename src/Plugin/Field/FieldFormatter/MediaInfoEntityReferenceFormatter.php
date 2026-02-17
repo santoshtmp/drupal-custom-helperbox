@@ -42,6 +42,7 @@ class MediaInfoEntityReferenceFormatter extends EntityReferenceFormatterBase {
             'display_option' => 'text',
             'filesize_option' => 'default',
             'downloadlinklabel' => '',
+            'gallery_image_style' => '',
         ] + parent::defaultSettings();
     }
 
@@ -64,6 +65,7 @@ class MediaInfoEntityReferenceFormatter extends EntityReferenceFormatterBase {
                 'fileextension' => $this->t('Show file extension'),
                 'download' => $this->t('Show as download link URL'),
                 'filename' => $this->t('Show file name'),
+                'video_embed_url' => $this->t('Show Remote Embed Video URL'),
             ],
             '#required' => true,
         ];
@@ -97,6 +99,26 @@ class MediaInfoEntityReferenceFormatter extends EntityReferenceFormatterBase {
             ],
         ];
 
+        // // Add image style selection for gallery format
+        // $image_styles = \Drupal::service('entity_type.manager')->getStorage('image_style')->loadMultiple();
+        // $style_options = ['' => $this->t('None (original image)')];
+        // foreach ($image_styles as $style) {
+        //     $style_options[$style->id()] = $style->label();
+        // }
+
+        // $elements['gallery_image_style'] = [
+        //     '#type' => 'select',
+        //     '#title' => $this->t('Gallery image style'),
+        //     '#default_value' => $this->getSetting('gallery_image_style') ?: '',
+        //     '#options' => $style_options,
+        //     '#description' => $this->t('Select an image style to apply to images in gallery format.'),
+        //     '#states' => [
+        //         'visible' => [
+        //             ':input[name="options[settings][display_option]"]' => ['value' => 'gallery_format'],
+        //         ],
+        //     ],
+        // ];
+
 
 
         return $elements;
@@ -118,10 +140,14 @@ class MediaInfoEntityReferenceFormatter extends EntityReferenceFormatterBase {
         }
 
         $display_option =  $settings['display_option'] ?? false;
-        // 
+
+        // Handle other display options normally
         foreach ($items as $delta => $item) {
             $item_id = $item->entity->id();
             $media = MediaHelper::get_media_library_info($item_id);
+            if (!$media) {
+                continue;
+            }
             if ($display_option == 'download') {
                 $elements[$delta] = [
                     '#markup' => $media[0]['file_path'],
@@ -162,12 +188,17 @@ class MediaInfoEntityReferenceFormatter extends EntityReferenceFormatterBase {
                 $elements[$delta] = [
                     '#markup' => $media[0]['file_name'],
                 ];
+            } else if ($display_option == 'video_embed_url') {
+                $elements[$delta] = [
+                    '#markup' => $media[0]['remote_embed_video']['embed_url'] ?? '',
+                ];
             } else {
                 $elements[$delta] = [
                     '#markup' => $media[0]['file_path'],
                 ];
             }
         }
+
         return $elements;
     }
 }

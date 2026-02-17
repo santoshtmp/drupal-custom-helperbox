@@ -100,36 +100,11 @@ class MenuHelper {
                 'is_active' => $is_active,
                 'in_active_trail' => $element->inActiveTrail,
                 'attributes' => new Attribute(),
-            ];
+            ];        
 
-            // 
-            try {
-                if ($menu_item_type === 'menu_link_content') {
-                    $entity = \Drupal::service('menu_item_extras.menu_link_tree_handler')->getMenuLinkItemEntity($link);
-                    // field_description
-                    if ($entity->hasField('field_description') && !$entity->get('field_description')->isEmpty()) {
-                        if (!$entity->get('field_description')->isEmpty()) {
-                            $menu_item['field_description'] = $entity->get('field_description')->value;
-                        }
-                    }
-                    // field_icon
-                    if ($entity->hasField('field_icon') && !$entity->get('field_icon')->isEmpty()) {
-                        $field_icon_id = $entity->get('field_icon')->entity->id();
-                        if ($field_icon_id) {
-                            $menu_item['field_icon'] = MediaHelper::get_media_library_info($field_icon_id);
-                        }
-                    }
-                    // field_override_external_link
-                    if ($entity->hasField('field_override_external_link') && !$entity->get('field_override_external_link')->isEmpty() && $is_external) {
-                        $override_link = $entity->get('field_override_external_link')->first()->getUrl();
-                        if ($override_link) {
-                            $menu_item['url'] = $override_link;
-                        }
-                    }
-                }
-            } catch (\Throwable $th) {
-                //throw $th;
-            }
+            // Allow modules/themes to alter the menu item, using hook hook_helperbox_menu_item_alter
+            \Drupal::moduleHandler()->alter('helperbox_menu_item', $menu_item, $link, $element);
+            \Drupal::theme()->alter('helperbox_menu_item', $menu_item, $link, $element);
 
             // If the menu item has below - children, process them recursively
             if (!empty($subtree)) {
