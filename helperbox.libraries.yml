@@ -21,6 +21,26 @@ helperbox_admin_styles:
     - core/drupalSettings
     - core/drupal.message
 
+helperbox_json_editor:
+  version: 1.x
+  css:
+    component:
+      css/helperbox_json_editor.css: {}
+  js:
+    js/helperbox_json_editor.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/drupalSettings
+  remote: https://ace.c9.io/
+  license:
+    name: BSD-3-Clause
+    url: https://github.com/ajaxorg/ace/blob/master/LICENSE
+  download:
+    type: git
+    url: https://github.com/ajaxorg/ace-builds.git
+    version: "v1.32.6"
+
 node_form_conditional_fields:
   css:
     theme:

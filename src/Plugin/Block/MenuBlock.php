@@ -86,6 +86,7 @@ class MenuBlock extends BlockBase {
     $menu_layout_selected = isset($config['menu_layout']) ? $config['menu_layout'] : 'default';
     $options = [
       'default' => "Default Layout",
+      'desktop' => "Responsive Desktop Layout",
       'mobile' => "Responsive Mobile Layout",
     ];
     $form['menu_layout'] = array(

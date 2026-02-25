@@ -5,8 +5,6 @@
  * Theme-related hooks for Helperbox module.
  */
 
-use Drupal\helperbox\Helper\UtilHelper;
-
 /**
  * Implements hook_theme().
  */
@@ -98,6 +96,21 @@ function helperbox_theme() {
         'template' => 'helperbox-renderblock',
     ];
 
+    // CTA button field template for Views.
+    $theme['helperbox_add_cta'] = [
+        'variables' => [
+            'cta_url' => '',
+            'cta_label' => '',
+            'cta_type' => 'primary',
+            'cta_target' => '',
+            'attributes' => [],
+            'url_type' => 'internal',
+            'is_external' => FALSE,
+            'is_no_link' => FALSE,
+        ],
+        'template' => 'helperbox-add-cta',
+    ];
+
     return $theme;
 }
 
@@ -107,8 +120,8 @@ function helperbox_theme() {
 function helperbox_theme_suggestions_helperbox_menu(array $variables) {
     $suggestions = [];
     $suggestions[] = 'helperbox_menu__layout_' . $variables['menu_layout'];
-    $suggestions[] = 'helperbox_menu__menu_' . $variables['menu_type'];
-    $suggestions[] = 'helperbox_menu__layout_' . $variables['menu_layout'] . '__menu_' . $variables['menu_type'];
+    $suggestions[] = 'helperbox_menu__menu_' . str_replace([' ', '-'], '_', $variables['menu_type']);
+    $suggestions[] = 'helperbox_menu__layout_' . $variables['menu_layout'] . '__menu_' . str_replace([' ', '-'], '_', $variables['menu_type']);
 
     return $suggestions;
 }
@@ -193,7 +206,7 @@ function helperbox_theme_suggestions_views_view_field_alter(array &$suggestions,
     $view = $variables['view'];
     $field = $variables['field'];
     $row = $variables['row'];
-    // 
+    //
     $view_id = $view->id();
     $display_id = $view->current_display;
     $field_name = $field->field;
@@ -290,7 +303,7 @@ function helperbox_theme_suggestions_field_alter(array &$suggestions, array $var
     if (!$entity) {
         return;
     }
-    // 
+    //
     $base_field = 'field__' . $entity->getEntityTypeId() . '__' . str_replace('-', '_', $field_name) . '__' . $entity->bundle();
     if ($entity->getEntityTypeId() == 'paragraph') {
         $nid = $entity->get('parent_id')->value;

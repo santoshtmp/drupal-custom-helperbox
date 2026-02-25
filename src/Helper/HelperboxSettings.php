@@ -10,7 +10,7 @@ namespace Drupal\helperbox\Helper;
 class HelperboxSettings {
 
     /**
-     * 
+     *
      */
     public static function get_config($field_name = '') {
         try {
@@ -25,6 +25,7 @@ class HelperboxSettings {
     }
 
     /**
+     * Get field rules from configuration.
      * Rules for field access based on entity type and bundle.
      *
      * Example:
@@ -38,47 +39,52 @@ class HelperboxSettings {
      *      ]
      *  ]
      *
-     * @var array<string, array<string, array{
-     *     field_access_check?: array<string, bool>
-     * }>>
-     * 
+     * @return array
+     *   The field rules configuration.
      */
-    public static $allfieldrules = [
-        // 'node' => [
-        //     'understanding_fimi' => [
-        //         'field_access_check' => [
-        //             'field_related_countries' => false,
-        //         ]
+    public static function getFieldRulesAll() {
+        $config_rules = self::get_config('field_rules_all');
+        if (!empty($config_rules)) {
+            return $config_rules;
+        }
+        return [];
+        // $allfieldrules = [
+        //     'node' => [
+        //         'article' => [
+        //             'field_access_check' => [
+        //                 'field_related_countries' => false,
+        //             ]
+        //         ],
         //     ],
-        // ],
-        // 'paragraph' => [
-        //     'content_item' => [
-        //         'field_access_check' => [
-        //             'field_list_items' => false,
-        //             'field_highlight_text' => false,
-        //             'field_file_upload' => false,
-        //         ]
+        //     'paragraph' => [
+        //         'content_item' => [
+        //             'field_access_check' => [
+        //                 'field_list_items' => false,
+        //                 'field_highlight_text' => false,
+        //                 'field_file_upload' => false,
+        //             ]
+        //         ],
+        //         'list_item' => [
+        //             'field_access_check' => [
+        //                 'field_description_2' => false,
+        //                 'field_featured_image' => false,
+        //                 'field_link' => false,
+        //             ]
+        //         ],
         //     ],
-        //     'list_item' => [
-        //         'field_access_check' => [
-        //             'field_description_2' => false,
-        //             'field_featured_image' => false,
-        //             'field_link' => false,
-        //         ]
-        //     ],
-        // ],
-
-    ];
+        // ];
+    }
 
     /**
+     * Get node field rules from configuration.
      * Field rules for specific content type and node ID.
      *
      * Example:
      * [
      *      'content_type_...' => [
      *          'node_id_...' => [
-     *              'field_...', 
-     *              'group_...', 
+     *              'field_...',
+     *              'group_...',
      *              [
      *                  'field_...' => true|false
      *              ],
@@ -95,33 +101,44 @@ class HelperboxSettings {
      *      ]
      * ]
      *
-     * @var array<string, array<int, array<string, mixed>>>
-     * 
+     * @return array
+     *   The node field rules configuration.
+     *
      */
-    public static $nodefieldrules = [
-        // 'understanding_fimi' => [
-        //     16 => [
-        //         'group_fimi_vs_disinformation',
-        //         'referenceField' => [
-        //             'field_content_section' => [
-        //                 'field_list_items' => false,
+    public static function getFieldRulesNode() {
+        $config_rules = self::get_config('field_rules_node');
+        if (!empty($config_rules)) {
+            return $config_rules;
+        }
+        return [];
+        // $nodefieldrules = [
+        //     'article' => [
+        //         16 => [
+        //             'group_general_section',
+        //             [
+        //                 'field_cta_action' => true
+        //             ],
+        //             'referenceField' => [
+        //                 'field_content_section' => [
+        //                     'field_list_items' => false,
+        //                 ]
         //             ]
         //         ]
-        //     ]
-        // ],
-        // 'page' => [
-        //     '15' => [
-        //         'referenceField' => [
-        //             'field_content_section' => [
-        //                 'field_highlight_text' => true,
+        //     ],
+        //     'page' => [
+        //         15 => [
+        //             'referenceField' => [
+        //                 'field_content_section' => [
+        //                     'field_highlight_text' => true,
+        //                 ]
         //             ]
-        //         ]
+        //         ],
         //     ]
-
-        // Add more content types here…
-    ];
+        // ];
+    }
 
     /**
+     * Get form field rules from configuration.
      * 
      * Example:
      * [
@@ -129,27 +146,55 @@ class HelperboxSettings {
      *      'field_...'=>true|false
      *  ]
      * ]
+     *
+     * @return array
+     *   The form field rules configuration.
      */
-    public static $formIdFieldsrules = [
-        'search_form' => [
-            'advanced' => false,
-        ]
-    ];
+    public static function getFieldRulesForm() {
+        $config_rules = self::get_config('field_rules_form');
+        if (!empty($config_rules)) {
+            return $config_rules;
+        }
+        return [];
+        // $formIdFieldsrules = [
+        //     'search_form' => [
+        //         'advanced' => false,
+        //     ]
+        // ];
+    }
 
     /**
+     * Get maximum content nodes from configuration.
      * Maximum allowed nodes per content type.
      *
      * Example:
      * [
      *      'content_type_...' => Number,
      * ]
-     * @var array<string, int>
+     *
+     * @return array
+     *   The maximum content nodes configuration.
      */
-    public static $maxContentNodes = [
-        'understanding_fimi' => 3,
-        // 'article' => 4
-    ];
+    public static function getFieldRulesMaxContent() {
+        $config_rules = self::get_config('field_rules_max_content');
+        if (!empty($config_rules)) {
+            return $config_rules;
+        }
+        return [];
+        // $maxContentNodes = [
+        //     'article' => 4
+        // ];
+    }
 
+    /**
+     * Check if unique node/item per content bundle is enabled.
+     *
+     * @return bool
+     *   TRUE if enabled, FALSE otherwise.
+     */
+    public static function isUniqueNodePerBundleEnabled() {
+        return (bool) self::get_config('enable_unique_node_per_bundle');
+    }
 
     // END
 }

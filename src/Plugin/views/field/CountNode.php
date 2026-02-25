@@ -9,7 +9,7 @@ use Drupal\views\Attribute\ViewsField;
 use Drupal\helperbox\Helper\UtilHelper;
 
 /**
- * 
+ *
  * A handler to provide for helperbox_count_node.
  * */
 #[ViewsField("helperbox_count_node")]
@@ -149,26 +149,26 @@ class CountNode extends FieldPluginBase {
      * {@inheritdoc}
      */
     public function render(ResultRow $values) {
-        if (!$this->sanitizeValue($this->options['node_content_type'])) {
+        if (!$this->sanitizeValue($this->options['node_content_type'] ?? '')) {
             return '';
         }
-        $nodeContentType = $this->sanitizeValue($this->options['node_content_type']);
+        $nodeContentType = $this->sanitizeValue($this->options['node_content_type'] ?? '');
         $conditionCount = $this->options['condition_count'] ?? 0;
         $setCondition = $this->options['set_condition'] ?? [];
-        // 
+        //
         $nodequery = \Drupal::entityQuery('node')
             ->accessCheck(TRUE)
             ->condition('type', $nodeContentType)
             ->condition('status', 1);
-        // 
+        //
         if (!$conditionCount) {
             return $nodequery->count()->execute();
         }
         foreach ($setCondition as $key => $condition) {
-            $node_field = $condition['node_field'];
-            
+            $node_field = $condition['node_field'] ?? '';
+
             // Check for other field
-            $node_value_type = $condition['node_value'];
+            $node_value_type = $condition['node_value'] ?? '';
             $target_id = '';
             if ($node_value_type == 'current_node_id') {
                 $node = \Drupal::routeMatch()->getParameter('node');
@@ -184,7 +184,7 @@ class CountNode extends FieldPluginBase {
                 }
             }
             if ($node_value_type == 'custom_value') {
-                $target_id = $condition['custom_value'];
+                $target_id = $condition['custom_value'] ?? '';
             }
 
             // Add condition

@@ -9,7 +9,7 @@ use Drupal\views\Attribute\ViewsField;
 use Drupal\helperbox\Helper\GetBlock;
 
 /**
- * 
+ *
  * A handler to provide for helperbox_renderblock.
  * */
 #[ViewsField("helperbox_renderblock")]
@@ -95,7 +95,7 @@ class RenderBlock extends FieldPluginBase {
      */
     public function render(ResultRow $values) {
 
-        $block_type = $this->options['block_type'];
+        $block_type = $this->options['block_type'] ?? 'view_block';
         if (!$block_type) {
             return "Block type not selected.";
         }
@@ -120,9 +120,9 @@ class RenderBlock extends FieldPluginBase {
          * 1) Plugin Block Rendering
          */
         if ($block_type === 'plugin_block') {
-            $block_plugin_id = trim($this->options['block_plugin_id']);
+            $block_plugin_id = trim($this->options['block_plugin_id'] ?? '');
             if ($block_plugin_id) {
-                // $additionalClass = 
+                // $additionalClass =
                 $rendered_block = GetBlock::render_block($block_plugin_id);
                 $additionalClass = 'innerblock-' . $block_plugin_id;
                 $dataView = 'block-' . $block_plugin_id;
@@ -133,8 +133,8 @@ class RenderBlock extends FieldPluginBase {
          * 2) Views Block Rendering
          */
         if ($block_type === 'view_block') {
-            $view_id = $this->sanitizeValue($this->options['view_id']);
-            $display_id = $this->sanitizeValue($this->options['display_id']);
+            $view_id = $this->sanitizeValue($this->options['view_id'] ?? '');
+            $display_id = $this->sanitizeValue($this->options['display_id'] ?? '');
             if ($view_id && $display_id) {
                 $viewArgs = $this->view->args ?? [];
                 $rendered_block = GetBlock::get_rendered_views_block($view_id, $display_id, $viewArgs);
@@ -177,7 +177,7 @@ class RenderBlock extends FieldPluginBase {
 
         /*  Render the block if available */
         if ($rendered_block) {
-            // 
+            //
             return [
                 '#theme' => 'helperbox_renderblock',
                 '#content' => $rendered_block,

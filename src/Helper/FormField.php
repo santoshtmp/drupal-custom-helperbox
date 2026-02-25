@@ -250,7 +250,7 @@ class FormField {
      */
     private static function checkNodeFields(array &$form, $form_state, $node,) {
         // Get the defined field rules
-        $rules = HelperboxSettings::$nodefieldrules;
+        $rules = HelperboxSettings::getFieldRulesNode();
         $nid    = $node->id();
         $bundle = $node->bundle();
 
@@ -282,7 +282,7 @@ class FormField {
 
             // For specific node id
             $thisNodeShow = ($nodeId == $nid) ? true : false;
-            if (is_array($fieldConditions)) {
+            if ($thisNodeShow && is_array($fieldConditions)) {
                 foreach ($fieldConditions as $fieldType => $fieldValue) {
                     if ($thisNodeShow && $fieldType == 'referenceField' && is_array($fieldValue)) {
                         self::checkNodeReferenceField($form, $fieldValue, $thisNodeShow);
@@ -355,7 +355,7 @@ class FormField {
      */
     private static function checkAllFields(array &$form, $form_state, $entity) {
         // Get the defined field rules
-        $fieldrules = HelperboxSettings::$allfieldrules;
+        $fieldrules = HelperboxSettings::getFieldRulesAll();
 
         // 
         $entity_type = $entity->getEntityTypeId();         // Get Entity type
@@ -429,7 +429,7 @@ class FormField {
      *   If $form is not an array or $nid is invalid.
      */
     private static function checkFieldsByFormId(&$form, $form_state, $form_id) {
-        $formIdFieldsrules = HelperboxSettings::$formIdFieldsrules;
+        $formIdFieldsrules = HelperboxSettings::getFieldRulesForm();
         if (isset($formIdFieldsrules[$form_id]) && is_array($formIdFieldsrules[$form_id])) {
             foreach ($formIdFieldsrules[$form_id] as $field_name => $check) {
                 if (is_bool($check)) {
@@ -496,7 +496,7 @@ class FormField {
         // 1. Validate title (unique per type)
         // -----------------------------
         $title_raw = $form_state->getValue('title');
-        if ($title_raw) {
+        if (HelperboxSettings::isUniqueNodePerBundleEnabled() && $title_raw) {
             $title = is_array($title_raw) ? ($title_raw[0]['value'] ?? '') : $title_raw;
             $title = trim($title);
 
@@ -561,7 +561,7 @@ class FormField {
      */
     public static function maxNodeValidate($type) {
 
-        $max_nodes = HelperboxSettings::$maxContentNodes;
+        $max_nodes = HelperboxSettings::getFieldRulesMaxContent();
 
         if (isset($max_nodes[$type]) && $max_nodes[$type] > 0) {
             $existing_count = (int) \Drupal::entityQuery('node')

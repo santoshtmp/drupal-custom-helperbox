@@ -81,11 +81,11 @@ class AddMedia extends FieldPluginBase {
     public function render(ResultRow $values) {
 
         // Get the media ID from options, allowing for replacement patterns
-        $media_id = $this->options['media_id'];
+        $media_id = $this->options['media_id'] ?? '';
 
         // Get media type and image style from options
-        $media_type = $this->options['media_type'];
-        $image_style = $this->options['image_style'];
+        $media_type = $this->options['media_type'] ?? '';
+        $image_style = $this->options['image_style'] ?? '';
 
         // Get media information using the helper
         $media_info = MediaHelper::get_media_library_info($media_id, $image_style);
@@ -102,8 +102,8 @@ class AddMedia extends FieldPluginBase {
                 return [
                     '#theme' => 'image',
                     '#uri' => $media_item['file_url'],
-                    '#alt' => $media_item['alt_text'],
-                    '#title' => $media_item['title_text'],
+                    '#alt' => $media_item['alt_text'] ?? '',
+                    '#title' => $media_item['title_text'] ?? '',
                 ];
 
             case 'video':

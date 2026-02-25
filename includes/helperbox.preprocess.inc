@@ -47,6 +47,23 @@ function helperbox_preprocess_links__language_block(array &$variables) {
 }
 
 /**
+ * Implements hook_preprocess_views_view() for block.
+ */
+function helperbox_preprocess_views_view(&$variables)
+{
+
+  $id = $variables['view']->id();
+  $current_display =  $variables['view']->current_display;
+
+  if ($id === 'content_listing' && $current_display === 'block_3') {
+    // Attach JS library
+    // $variables['#attached']['library'][] = 'creative/countriesinfocus';
+    // Pass data to JS
+    // $variables['#attached']['drupalSettings']['countresfocusdata'] = PartialsContent::getCountriesInFocus();
+  }
+}
+
+/**
  * Implements hook_preprocess_views_view_field().
  */
 function helperbox_preprocess_views_view_field(&$variables) {

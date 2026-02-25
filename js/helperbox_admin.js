@@ -1,50 +1,62 @@
+/**
+ * @file
+ * Helperbox admin behaviors.
+ *
+ * Provides admin UI enhancements for helperbox module including
+ * tab hash navigation and contextual links toggle.
+ */
+
 (function ($, Drupal, drupalSettings, once) {
+  'use strict';
 
-    Drupal.behaviors.helperboxadminjs = {
-        attach: function (context) {
+  /**
+   * Attach helperbox admin behaviors.
+   *
+   * @type {Drupal~behavior}
+   *
+   * @prop {Drupal~behaviorAttach} attach
+   *   Attaches helperbox admin functionality.
+   */
+  Drupal.behaviors.helperboxAdmin = {
+    attach: function (context) {
+      // List of form IDs to apply tab hash navigation.
+      var formIds = [
+        'config-pages-site-settings-form'
+      ];
 
-            /**
-             * 
-             */
-            const checkFormId = [
-                'config-pages-site-settings-form',
-            ];
-            checkFormId.forEach(elementFormId => {
-                once('helperboxadminjs', '#' + elementFormId, context).forEach(() => {
-                    if (location.hash) {
-                        var target = $('#' + elementFormId + ' .horizontal-tabs-list a[href="' + location.hash + '"]');
-                        if (target.length) {
-                            target.click();
-                            // Scroll to the element
-                            $('html, body').animate({
-                                scrollTop: target.offset().top - 100
-                            }, 400);
-                        }
+      // Apply tab hash navigation for each form.
+      formIds.forEach(function (formId) {
+        once('helperbox-admin', '#' + formId, context).forEach(function () {
+          var $form = $('#' + formId);
 
-                    }
-                    $('#' + elementFormId + ' ul.horizontal-tabs-list li a').on('click', function (e) {
-                        const href = $(this).attr('href');        // e.g. "#edit-group-contact-info"
-                        const tablink = location.pathname + location.search + href;
-                        history.replaceState(null, null, tablink);
-                    });
+          // Scroll to tab if hash exists in URL.
+          if (window.location.hash) {
+            var $target = $form.find('.horizontal-tabs-list a[href="' + window.location.hash + '"]');
+            if ($target.length) {
+              $target.trigger('click');
+              $('html, body').animate({
+                scrollTop: $target.offset().top - 100
+              }, 400);
+            }
+          }
 
-                });
+          // Update URL hash when tab is clicked.
+          $form.find('ul.horizontal-tabs-list li a').on('click', function (event) {
+            var href = $(this).attr('href');
+            var tabLink = window.location.pathname + window.location.search + href;
+            window.history.replaceState(null, null, tabLink);
+          });
+        });
+      });
 
-            });
-            // 
-
-            /**
-             * 
-             **/
-            once('helperboxadminjs', '.edit-field-helperbox-renderblock', context).forEach((el) => {
-                const $thiscontext = $(el);
-                $thiscontext.find('.contextual.edit-adminlinks .trigger').on('click', function () {
-                    $thiscontext.find('.edit-adminlinks').toggleClass('open');
-                });
-            });
-
-        }
-    };
+      // Handle contextual links toggle for render block fields.
+      once('helperbox-admin', '.edit-field-helperbox-renderblock', context).forEach(function (element) {
+        var $element = $(element);
+        $element.find('.contextual.edit-adminlinks .trigger').on('click', function () {
+          $element.find('.edit-adminlinks').toggleClass('open');
+        });
+      });
+    }
+  };
 
 })(jQuery, Drupal, drupalSettings, once);
-

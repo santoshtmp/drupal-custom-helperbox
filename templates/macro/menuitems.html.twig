@@ -31,14 +31,9 @@
 
 				{# Common content for both <a> and <span> in li #}
 				{% set menu_item_content %}
-					{% if item.field_icon %}
-						{% for icon in item.field_icon %}
-							<img src="{{ icon.file_path }}" alt="{{icon.file_name}}" class="">
-						{% endfor %}
-					{% endif %}
-					<div class="menu__title">
-						{{item.title}}
-					</div>
+				<div class="menu__title">
+					{{item.title}}
+				</div>
 				{% endset %}
 
 				{# Determine href if the item has a URL #}

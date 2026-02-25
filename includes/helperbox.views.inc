@@ -7,6 +7,7 @@
 
 use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\query\QueryPluginBase;
+use Drupal\helperbox\Helper\UtilHelper;
 
 /**
  * Implements hook_views_query_alter().
@@ -15,7 +16,7 @@ use Drupal\views\Plugin\views\query\QueryPluginBase;
  */
 function helperbox_views_query_alter(ViewExecutable $view, QueryPluginBase $query) {
     try {
-        // check if the view is for Config Pages.
+        // Check if the view is for Config Pages.
         if ($view->storage->get('base_table') !== 'config_pages') {
             return;
         }
@@ -31,11 +32,13 @@ function helperbox_views_query_alter(ViewExecutable $view, QueryPluginBase $quer
             return;
         }
 
-        // Build safe LIKE patterns.
+        // Build safe LIKE patterns for both JSON and serialized PHP formats.
+        // JSON format: {"language":"en",...}
         $like_json = '%"language":"' . $current_lang . '"%';
 
-        $length = strlen($current_lang);
-        $like_php = '%s:8:"language";s:' . $length . ':"' . $current_lang . '"%';
+        // PHP serialized format: s:8:"language";s:2:"en";
+        // We use a more flexible pattern that matches any string length.
+        $like_php = '%s:' . strlen($current_lang) . ':"' . $current_lang . '"%';
 
         $expression = "(context LIKE :lang_json OR context LIKE :lang_php)";
 
@@ -45,7 +48,9 @@ function helperbox_views_query_alter(ViewExecutable $view, QueryPluginBase $quer
             ':lang_php'  => $like_php,
         ]);
     } catch (\Throwable $th) {
-        //throw $th;
+        // Log the error using helperbox error logger.
+        UtilHelper::helperbox_error_log($th);
+        \Drupal::logger('helperbox')->error('Error in helperbox_views_query_alter: @message', ['@message' => $th->getMessage()]);
     }
 }
 
@@ -85,6 +90,14 @@ function helperbox_views_data_alter(array &$data) {
         'help'  => t('Add media'),
         'field' => [
             'id' => 'helperbox_add_media',
+        ],
+        'group' => t('HelperBox'),
+    ];
+    $data['views']['helperbox_add_cta'] = [
+        'title' => t('Add CTA'),
+        'help'  => t('Add CTA (Call To Action) button'),
+        'field' => [
+            'id' => 'helperbox_add_cta',
         ],
         'group' => t('HelperBox'),
     ];

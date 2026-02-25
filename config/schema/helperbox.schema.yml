@@ -8,6 +8,9 @@ helperbox.settings:
     enable_media_custom_thumbnail:
       type: boolean
       label: "Enable custom media thumbnail"
+    enable_unique_node_per_bundle:
+      type: boolean
+      label: "Enable unique node/item per content bundle"
     helperbox_text:
       type: text
       label: "Helperbox text"
@@ -21,6 +24,18 @@ helperbox.settings:
         cdn_lightgallery:
           type: boolean
           label: "Enable lightgallery from CDN"
+    field_rules_all:
+      type: ignore
+      label: "Field Rules All"
+    field_rules_node:
+      type: ignore
+      label: "Node Field Rules"
+    field_rules_form:
+      type: ignore
+      label: "Form Field Rules"
+    field_rules_max_content:
+      type: ignore
+      label: "Maximum Content Nodes"
 
 block.settings.helperbox_menu_block:
   type: block_settings
@@ -344,7 +359,7 @@ views.field.helperbox_custom_text:
   mapping:
     # Custom key(s)
     custom_text:
-      type: text
+      type: text_format
       label: "Custom text content"
     # Add others if present in the plugin's options
 
@@ -361,6 +376,35 @@ views.field.helperbox_add_media:
     media_id:
       type: string
       label: "Media ID"
+
+views.field.helperbox_add_cta:
+  type: views_field
+  label: "Helperbox Add CTA field"
+  mapping:
+    cta_label:
+      type: label
+      label: "CTA label"
+    cta_url:
+      type: string
+      label: "CTA URL"
+    cta_type:
+      type: string
+      label: "CTA type"
+    cta_target:
+      type: string
+      label: "CTA link target"
+    use_link_field:
+      type: boolean
+      label: "Use existing link field"
+    link_field:
+      type: string
+      label: "Link field name"
+    cta_enable_extra_query_params:
+      type: boolean
+      label: "Enable extra query parameters"
+    cta_query_params:
+      type: string
+      label: "Query parameters"
 
 views.field.helperbox_count_node:
   type: views_field
@@ -394,42 +438,84 @@ views.field.helperbox_count_node:
             type: string
             label: "Custom value"
 
+views.area.helperbox_renderblock:
+  type: views_area
+  label: "Helperbox Render Block area"
+  mapping:
+    block_type:
+      type: string
+      label: "Block type"
+    block_plugin_id:
+      type: string
+      label: "Block plugin ID"
+    view_id:
+      type: string
+      label: "View ID"
+    display_id:
+      type: string
+      label: "Display ID"
+
 field.widget.settings.helperbox_date_time_widget:
   type: mapping
-  label: 'Helperbox Date Time widget settings'
+  label: "Helperbox Date Time widget settings"
   mapping:
     increment:
       type: string
-      label: 'Time increment'
+      label: "Time increment"
     date_order:
       type: string
-      label: 'Date part order'
+      label: "Date part order"
     time_type:
       type: string
-      label: 'Time type'
+      label: "Time type"
     time_optional:
       type: boolean
-      label: 'Make time optional'
+      label: "Make time optional"
     value_only_time:
       type: boolean
-      label: 'Show time only'
+      label: "Show time only"
     start_year_range:
       type: string
-      label: 'Start year range'
+      label: "Start year range"
     end_year_range:
       type: string
-      label: 'End year range'
+      label: "End year range"
     custom_start_year_range:
       type: integer
-      label: 'Custom start year'
+      label: "Custom start year"
     custom_end_year_range:
       type: integer
-      label: 'Custom end year'
+      label: "Custom end year"
 
 field.formatter.settings.helperbox_fieldformat_daterange:
   type: mapping
-  label: 'Helperbox Date Range formatter settings'
+  label: "Helperbox Date Range formatter settings"
   mapping:
     helperbox_formatter:
       type: boolean
-      label: 'Helperbox formatter'
+      label: "Helperbox formatter"
+
+field.formatter.settings.helperbox_fieldformat_mediainfo:
+  type: mapping
+  label: "HelperBox Media Info formatter settings"
+  mapping:
+    display_option:
+      type: string
+      label: "Display option"
+    filesize_option:
+      type: string
+      label: "Filesize option"
+    downloadlinklabel:
+      type: label
+      label: "Download link label"
+    image_style:
+      type: string
+      label: "Image style"
+
+field.formatter.settings.helperbox_fieldformat_tel_phone_number:
+  type: mapping
+  label: "HelperBox Telephone Phone Number formatter settings"
+  mapping:
+    title:
+      type: string
+      label: "Link title"

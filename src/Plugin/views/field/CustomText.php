@@ -56,7 +56,10 @@ class CustomText extends FieldPluginBase {
      */
     protected function defineOptions() {
         $options = parent::defineOptions();
-        $options['custom_text'] = ['default' => ''];
+        $options['custom_text'] = [
+            'default' => '',
+            'translatable' => TRUE,
+        ];
 
         return $options;
     }
@@ -95,7 +98,7 @@ class CustomText extends FieldPluginBase {
 
     /**
      * {@inheritdoc}
-     * 
+     *
      * Renders the final output by:
      * - Removing unsafe tags,
      * - Replacing Views tokens,
@@ -104,7 +107,7 @@ class CustomText extends FieldPluginBase {
      */
 
     public function render(ResultRow $values) {
-        $custom_text = $this->options['custom_text'];
+        $custom_text = $this->options['custom_text'] ?? '';
         $custom_text = self::filterHtmlRemoveTags($custom_text);
         // $tokens = $this->getRenderTokens([]);
         $tokens = $this->getRenderTokens($values);

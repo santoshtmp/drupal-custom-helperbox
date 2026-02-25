@@ -42,7 +42,7 @@ class MediaInfoEntityReferenceFormatter extends EntityReferenceFormatterBase {
             'display_option' => 'text',
             'filesize_option' => 'default',
             'downloadlinklabel' => '',
-            'gallery_image_style' => '',
+            'image_style' => '',
         ] + parent::defaultSettings();
     }
 
@@ -99,25 +99,25 @@ class MediaInfoEntityReferenceFormatter extends EntityReferenceFormatterBase {
             ],
         ];
 
-        // // Add image style selection for gallery format
-        // $image_styles = \Drupal::service('entity_type.manager')->getStorage('image_style')->loadMultiple();
-        // $style_options = ['' => $this->t('None (original image)')];
-        // foreach ($image_styles as $style) {
-        //     $style_options[$style->id()] = $style->label();
-        // }
+        // Add image style selection for format
+        $image_styles = \Drupal::service('entity_type.manager')->getStorage('image_style')->loadMultiple();
+        $style_options = ['' => $this->t('None (original image)')];
+        foreach ($image_styles as $style) {
+            $style_options[$style->id()] = $style->label();
+        }
 
-        // $elements['gallery_image_style'] = [
-        //     '#type' => 'select',
-        //     '#title' => $this->t('Gallery image style'),
-        //     '#default_value' => $this->getSetting('gallery_image_style') ?: '',
-        //     '#options' => $style_options,
-        //     '#description' => $this->t('Select an image style to apply to images in gallery format.'),
-        //     '#states' => [
-        //         'visible' => [
-        //             ':input[name="options[settings][display_option]"]' => ['value' => 'gallery_format'],
-        //         ],
-        //     ],
-        // ];
+        $elements['image_style'] = [
+            '#type' => 'select',
+            '#title' => $this->t('image style'),
+            '#default_value' => $this->getSetting('image_style') ?: '',
+            '#options' => $style_options,
+            '#description' => $this->t('Select an image style to apply to images in format.'),
+            '#states' => [
+                'visible' => [
+                    ':input[name="options[settings][display_option]"]' => ['value' => 'text'],
+                ],
+            ],
+        ];
 
 
 
@@ -132,7 +132,6 @@ class MediaInfoEntityReferenceFormatter extends EntityReferenceFormatterBase {
         $elements = [];
         $settings = $this->getSettings();
         $entities = $this->getEntitiesToView($items, $langcode);
-        $target_type = $this->getFieldSetting('target_type');
 
         // Early opt-out if the field is empty.
         if (empty($entities)) {
@@ -140,11 +139,12 @@ class MediaInfoEntityReferenceFormatter extends EntityReferenceFormatterBase {
         }
 
         $display_option =  $settings['display_option'] ?? false;
+        $image_style =  $settings['image_style'] ?? '';
 
         // Handle other display options normally
         foreach ($items as $delta => $item) {
             $item_id = $item->entity->id();
-            $media = MediaHelper::get_media_library_info($item_id);
+            $media = MediaHelper::get_media_library_info($item_id, $image_style);
             if (!$media) {
                 continue;
             }
