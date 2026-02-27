@@ -15,3 +15,6 @@ dependencies:
   - drupal:menu_item_extras
   - drupal:config_pages
   - drupal:conditional_fields
+
+# Information added by Developer 2026-02-27
+localversion: 2026022700
