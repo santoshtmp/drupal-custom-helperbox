@@ -359,7 +359,7 @@ views.field.helperbox_custom_text:
   mapping:
     # Custom key(s)
     custom_text:
-      type: text_format
+      type: string
       label: "Custom text content"
     # Add others if present in the plugin's options
 

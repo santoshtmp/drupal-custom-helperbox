@@ -32,6 +32,16 @@ function helperbox_views_query_alter(ViewExecutable $view, QueryPluginBase $quer
             return;
         }
 
+        // Ensure the query has at least one field selected.
+        // This prevents "SELECT FROM" syntax errors when no fields are defined.
+        $select_query = $query->query();
+        $fields = $select_query->getFields();
+        if (empty($fields)) {
+            // Add the base table ID field if no fields are present.
+            $table_alias = $query->ensureTable('config_pages');
+            $query->addField($table_alias, 'id');
+        }
+
         // Build safe LIKE patterns for both JSON and serialized PHP formats.
         // JSON format: {"language":"en",...}
         $like_json = '%"language":"' . $current_lang . '"%';

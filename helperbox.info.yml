@@ -13,8 +13,7 @@ dependencies:
   - drupal:select2
   - drupal:media_library_form_element
   - drupal:menu_item_extras
-  - drupal:config_pages
   - drupal:conditional_fields
 
 # Information added by Developer 2026-02-27
-localversion: 2026022700
+localversion: 2026031300

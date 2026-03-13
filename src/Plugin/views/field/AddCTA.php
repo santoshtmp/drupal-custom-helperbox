@@ -21,7 +21,7 @@ use Drupal\Component\Utility\Crypt;
  * Features:
  * - Internal paths (e.g., /about, /node/1, ?query=1, #fragment)
  * - External URLs (e.g., https://example.com, http://..., mailto:, tel:)
- * - Special values: <front>, <nolink>, <button>
+ * - Special values: <front>, <nolink>, <button>, <current_node>
  * - Entity autocomplete for nodes (displays as "Node Title (nid)")
  * - Configurable button styles (primary/secondary)
  *
@@ -190,12 +190,13 @@ class AddCTA extends FieldPluginBase {
     $form['cta_url'] = [
       '#type' => 'textfield',
       '#title' => $this->t('CTA Link'),
-      '#description' => $this->t('Start typing to search content (autocomplete for nodes). Or enter: internal path (%add-node, /about), external URL (%url), or special: %front (homepage), %nolink (text only), %button (styled text only).', [
+      '#description' => $this->t('Start typing to search content (autocomplete for nodes). Or enter: internal path (%add-node, /about), external URL (%url), or special: %front (homepage), %nolink (text only), %button (styled text only), %current_node (current entity URL).', [
         '%front' => '<front>',
         '%add-node' => '/node/add',
         '%url' => 'https://example.com',
         '%nolink' => '<nolink>',
         '%button' => '<button>',
+        '%current_node' => '<current_node>',
       ]),
       '#default_value' => $default_input,
       '#element_validate' => [[static::class, 'validateCtaUrl']],
@@ -414,9 +415,9 @@ class AddCTA extends FieldPluginBase {
       parse_url($uri, PHP_URL_SCHEME) === 'internal'
       && !in_array($element['#value'][0] ?? '', ['/', '?', '#'], TRUE)
       && !str_starts_with($element['#value'], '<front>')
-      && !in_array($element['#value'], ['<nolink>', '<button>'], TRUE)
+      && !in_array($element['#value'], ['<nolink>', '<button>', '<current_node>'], TRUE)
     ) {
-      $form_state->setError($element, t('Internal paths must start with /, ?, #, or be a special value like <front>, <nolink>, <button>.'));
+      $form_state->setError($element, t('Internal paths must start with /, ?, #, or be a special value like <front>, <nolink>, <button>, <current_node>.'));
     }
   }
 
@@ -433,6 +434,7 @@ class AddCTA extends FieldPluginBase {
    * - entity:node/1 → "Node Title (1)"
    * - route:<nolink> → <nolink>
    * - route:<button> → <button>
+   * - route:<current_node> → <current_node>
    * - https://example.com → https://example.com (unchanged)
    *
    * @param string $uri
@@ -495,6 +497,7 @@ class AddCTA extends FieldPluginBase {
    * - "<front>" → internal:/
    * - "<nolink>" → route:<nolink>
    * - "<button>" → route:<button>
+   * - "<current_node>" → route:<current_node>
    * - "https://example.com" → https://example.com (unchanged)
    *
    * @param string $string
@@ -516,9 +519,9 @@ class AddCTA extends FieldPluginBase {
     if ($entity_id !== NULL) {
       $uri = 'entity:node/' . $entity_id;
     }
-    // Handle special route values: <nolink>, <none>, <button>.
+    // Handle special route values: <nolink>, <none>, <button>, <current_node>.
     // These are stored with the route: scheme.
-    elseif (in_array($string, ['<nolink>', '<none>', '<button>'], TRUE)) {
+    elseif (in_array($string, ['<nolink>', '<none>', '<button>', '<current_node>'], TRUE)) {
       $uri = 'route:' . $string;
     }
     // Handle schemeless strings (internal paths).
@@ -585,6 +588,7 @@ class AddCTA extends FieldPluginBase {
     $is_no_link = in_array($url_type, ['nolink', 'button', 'none'], TRUE);
     $is_external = $url_type === 'external';
     $is_front = $url_type === 'front';
+    $is_current_node = $url_type === 'current_node';
 
     // Handle special cases: <nolink> and <button> display text only.
     // These are used when you want button styling without a link.
@@ -602,18 +606,28 @@ class AddCTA extends FieldPluginBase {
       ];
     }
 
-    // Attempt to create a Url object from the URI.
-    $cta_url_object = $this->getUrl($cta_url);
-    if (!$cta_url_object) {
-      return [];
+    // Handle <current_node>: get URL from the current entity.
+    if ($is_current_node && $entity) {
+      $url_string = $entity->toUrl()->toString();
+      // Optionally use entity title as label if not configured.
+      if (empty($cta_label)) {
+        $cta_label = $entity->label();
+      }
     }
+    else {
+      // Attempt to create a Url object from the URI.
+      $cta_url_object = $this->getUrl($cta_url);
+      if (!$cta_url_object) {
+        return [];
+      }
 
-    // Get the string URL for the template.
-    $url_string = $cta_url_object->toString();
+      // Get the string URL for the template.
+      $url_string = $cta_url_object->toString();
 
-    // For front page, ensure we have the correct URL.
-    if ($is_front) {
-      $url_string = Url::fromRoute('<front>')->toString();
+      // For front page, ensure we have the correct URL.
+      if ($is_front) {
+        $url_string = Url::fromRoute('<front>')->toString();
+      }
     }
 
 
@@ -782,6 +796,7 @@ class AddCTA extends FieldPluginBase {
    *   - 'front': Front page link (<front> or internal:/)
    *   - 'nolink': No link, text only (<nolink>)
    *   - 'button': Button-style text only (<button>)
+   *   - 'current_node': Current entity being rendered
    *   - 'none': Empty or invalid URI
    *   - 'entity': Entity reference (e.g., entity:node/1)
    *   - 'route': Route-based link
@@ -794,7 +809,7 @@ class AddCTA extends FieldPluginBase {
       return 'none';
     }
 
-    // Check for route: scheme (nolink, button, front).
+    // Check for route: scheme (nolink, button, front, current_node).
     if (str_starts_with($uri, 'route:')) {
       $route_name = substr($uri, 6);
       if ($route_name === '<nolink>') {
@@ -805,6 +820,9 @@ class AddCTA extends FieldPluginBase {
       }
       if ($route_name === '<front>') {
         return 'front';
+      }
+      if ($route_name === '<current_node>') {
+        return 'current_node';
       }
       return 'route';
     }
@@ -847,6 +865,7 @@ class AddCTA extends FieldPluginBase {
    * - route:<front> → Front page URL
    * - route:<nolink> → NULL (no link)
    * - route:<button> → NULL (no link)
+   * - route:<current_node> → Current entity URL (handled in render())
    * - https://... → External URL
    *
    * @param string $uri
@@ -882,6 +901,11 @@ class AddCTA extends FieldPluginBase {
       // <front> links to the site's front page.
       if ($route_name === '<front>') {
         return Url::fromRoute('<front>');
+      }
+
+      // <current_node> is handled in render() method with entity context.
+      if ($route_name === '<current_node>') {
+        return NULL;
       }
     }
 
