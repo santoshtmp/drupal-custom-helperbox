@@ -63,3 +63,15 @@ helperbox_datetimewidget:
     - core/jquery
     - core/drupal
     - select2/select2
+
+helperbox_menu:
+  version: 1.x
+  css:
+    theme:
+      css/helperbox_menu.css: {}
+  js:
+    js/helperbox_menu.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/drupalSettings

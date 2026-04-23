@@ -1,47 +1,65 @@
 {#
+/**
+ * @file menuitems.html.twig
+ *
+ * Twig macros for rendering hierarchical menu structures.
+ *
+ * Available macros:
+ * - menu_links: Renders desktop/header menu with nested submenus
+ * - mobile_menu_links: Renders mobile menu with panel-based navigation
+ *
+ * @see https://twig.symfony.com/doc/3.x/tags/macro.html
+ */
+#}
+{% macro menu_links_test(items, attributes, menu_level, wrapper_class) %}
+	{% for item in items %}
+		<div>{{ item.title }}</div>
+	{% endfor %}
+{% endmacro %}
+
+{#
+  Desktop menu macro - renders hierarchical menu with recursive submenus.
 
   Parameters:
-  - items: array of menu items
-  - attributes: HTML attributes for <ul>
-  - menu_level: current menu depth (starts at 0)
-  - main_class: CSS class for the top-level menu
-
-  We call a macro which calls itself to render the full tree.
-  @see https://twig.symfony.com/doc/3.x/tags/macro.html
+  - items: Menu items tree structure
+  - attributes: HTML attributes for the <ul> element
+  - menu_level: Current depth level (0 = top level)
+  - wrapper_class: CSS class for the menu wrapper
 #}
-
-{% macro menu_links(items, attributes, menu_level, main_class) %}
-	{% import _self as header_menus %}
+{% macro menu_links(items, attributes, menu_level, wrapper_class) %}
+	{% import _self as menus %}
 	{% if items %}
+		{# Build UL classes: wrapper class + level indicator #}
 		{% set ul_classes = [
-				main_class,
-				'menu--level-' ~ (menu_level + 1)
-			] 
-		%}
-		<ul {{ attributes.addClass(ul_classes) }}>
+			wrapper_class,
+			'menu-level--' ~ (menu_level + 1)
+			] %}
+
+		<ul
+			{{ attributes.addClass(ul_classes) }}>
+			{# Remove added classes from attributes for child elements #}
 			{% set attributes = attributes.removeClass(ul_classes) %}
+
 			{% for item in items %}
-				{# Set classes for the <li>, including active state and children #}
+				{# Build LI classes: base item, position, has-children flag, active state #}
 				{% set item_classes = [
 					'menu-item',
 					'menu-item--' ~ loop.index,
 					item.below ? 'menu-item--has-children',
-					item.is_active ? 'active',
-				] %}
+					item.is_active ? 'active'
+					] %}
 
-				{# Common content for both <a> and <span> in li #}
+				{# Menu item title content (wrapped in div for styling flexibility) #}
 				{% set menu_item_content %}
-				<div class="menu__title">
-					{{item.title}}
-				</div>
+				<div class="menu__title">{{ item.title }}</div>
 				{% endset %}
 
-				{# Determine href if the item has a URL #}
+				{# Get URL string if available #}
 				{% set href = item.url ? item.url.toString : '' %}
 
 				<li
-					{{item.attributes.addClass(item_classes)}}>
-					{# Render link if href exists, otherwise use <span> #}
+					{{ item.attributes.addClass(item_classes) }}>
+					{# Render as link if URL exists, otherwise as plain span #}
 					{% if href %}
 						<a href="{{ href }}" class="menu-item-link">
 							{{ menu_item_content|raw }}
@@ -52,13 +70,101 @@
 						</span>
 					{% endif %}
 
-					{# Recursive call for children #}
+					{# Render submenu if children exist, with toggle arrow for interaction #}
 					{% if item.below %}
-						{{ header_menus.menu_links(item.below, attributes, menu_level + 1,'sub-menu') }}
+						{{ menus.menu_links(item.below, attributes, menu_level + 1, 'sub-menu') }}
 						<div class="toggle-arrow"></div>
 					{% endif %}
 				</li>
 			{% endfor %}
 		</ul>
+	{% endif %}
+{% endmacro %}
+
+{#
+  Mobile menu macro - renders menu with panel-based navigation.
+
+  Parameters:
+  - items: Menu items tree structure
+  - attributes: HTML attributes for the <ul> element
+  - menu_level: Current depth level (0 = top level)
+  - wrapper_class: CSS class for the menu wrapper
+  - header_title: Title for panel header (parent item title for submenus)
+#}
+{% macro mobile_panel_base_menu_links(items, attributes, menu_level, wrapper_class, header_title) %}
+	{% import _self as menus %}
+	{# menu item #}
+	{% if items %}
+		{# Panel container for mobile menu navigation #}
+		<div
+			class="panel" data-level="{{ menu_level }}">
+
+			{# Panel header: dynamic title and class based on menu level #}
+			{% set header_title = header_title ? header_title : 'Menu' %}
+			{% set header_class = menu_level > 0 ? 'mm-navbar__title back-btn' : 'mm-navbar__title' %}
+			<h2 class="{{ header_class }}">{{ header_title }}</h2>
+
+			{# Build UL classes: wrapper, mobile list style, and level indicator #}
+			{% set ul_classes = [
+					'mm-list',
+					'menu-level--' ~ (menu_level + 1)
+					] 
+				%}
+
+			{# Set attributes to UL item #}
+			{% set attributes = attributes.addClass(ul_classes) %}
+			<ul
+				{{ attributes }}>
+				{# Remove added classes from attributes for child elements #}
+				{% set attributes = attributes.removeClass(ul_classes) %}
+
+				{% for item in items %}
+					{# Build LI classes: mobile item, position, has-children flag, active state #}
+					{% set item_classes = [
+						'mm-item ',
+						'menu-item--' ~ loop.index,
+						item.below ? 'menu-item--has-children',
+						item.is_active ? 'active'
+						] %}
+
+					{# Get URL string if available #}
+					{% set href = item.url ? item.url.toString : '' %}
+
+					{# Menu item content: link if URL exists, otherwise span #}
+					{% set menu_item_content %}
+					{% if href %}
+						<a href="{{ href }}" class="menu-title menu-mobile-menu">
+
+							<span>{{ item.title }}</span>
+						</a>
+					{% else %}
+						<div class="menu-title menu-mobile-menu menu-item-no-link">
+
+							<span>{{ item.title }}</span>
+						</div>
+					{% endif %}
+					{% endset %}
+
+					{# Set attributes to LI item #}
+					{% set li_attributes = item.attributes.setAttribute('class', []) %}
+					{% set li_attributes = item.attributes.addClass(item_classes) %}
+					<li
+						{{li_attributes}}>
+						{# Items with children: wrap in button with next indicator for navigation #}
+						{% if item.below %}
+							<div class="mm-btn">
+								{{ menu_item_content|raw }}
+								<span class="mm-btn--next"></span>
+							</div>
+							{# Recursively render submenu panel #}
+							{{ menus.mobile_panel_base_menu_links(item.below, attributes, menu_level + 1, wrapper_class, item.title) }}
+						{% else %}
+							{# Items without children: render content directly #}
+							{{ menu_item_content|raw }}
+						{% endif %}
+					</li>
+				{% endfor %}
+			</ul>
+		</div>
 	{% endif %}
 {% endmacro %}

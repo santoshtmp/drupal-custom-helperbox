@@ -14,12 +14,16 @@ function helperbox_theme() {
     $theme['helperbox_menu'] = [
         'variables' => [
             'menu_layout' => '',
+            'menu_layout_location' => '',
+            'menu_layout_subtype' => '',
+            'mobile_menu_panel_title' => '',
             'menu_type' => '',
             'menu_title' => '',
             'menu_items' => [],
             'social_link_title' => '',
             'social_links' => '',
-            'background_image' => ''
+            'background_image' => '',
+            'attributes' => [],
         ],
         'template' => 'helperbox-menu',
     ];

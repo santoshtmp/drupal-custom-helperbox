@@ -3,3 +3,8 @@ services:
     class: Drupal\helperbox\EventSubscriber\LoaderEventSubscriber
     tags:
       - { name: event_subscriber }
+  helperbox.login_block_subscriber:
+    class: Drupal\helperbox\EventSubscriber\LoginBlockSubscriber
+    arguments: ['@path_alias.manager']
+    tags:
+      - { name: event_subscriber }

@@ -3,22 +3,38 @@
 namespace Drupal\helperbox\Helper;
 
 use Drupal\file\Entity\File;
-use Drupal\media\Entity\Media;
 use Drupal\image\Entity\ImageStyle;
+use Drupal\media\Entity\Media;
 
 /**
- * custom class to handle Media helper
- * MediaHelper
- * version 1.0.0
- * time 2025081500
+ * Provides helper methods for working with Drupal media entities.
+ *
+ * Contains utility methods for retrieving media information, generating image
+ * style URLs, extracting embed URLs for remote videos, and handling common
+ * media field operations across different media bundles.
+ *
+ * @package Drupal\helperbox\Helper
+ *
+ * @see \Drupal\media\Entity\Media
+ * @see \Drupal\image\Entity\ImageStyle
  */
 class MediaHelper {
 
     /**
-     * @param Drupal\Core\Entity\Entity\EntityViewDisplay $display
+     * Retrieves the image style configured for a field in a view display.
+     *
+     * @param \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display
+     *   The entity view display configuration.
      * @param string $field_name
+     *   The machine name of the field to check.
+     * @param bool $all_settings
+     *   If TRUE, returns all component settings instead of just the image style.
+     *
+     * @return string|array
+     *   The image style machine name, all settings array if $all_settings is TRUE,
+     *   or an empty string if not configured.
      */
-    public static function get_component_image_style($display, $field_name, $all_settings = false) {
+    public static function get_component_image_style($display, $field_name, $all_settings = FALSE) {
         try {
             if ($display) {
                 // Get the field component settings
@@ -37,7 +53,16 @@ class MediaHelper {
     }
 
     /**
+     * Retrieves the source field machine name for a given media bundle type.
      *
+     * Maps media bundle types to their corresponding source field names used
+     * to store the actual media file or reference.
+     *
+     * @param string $media_type
+     *   The media bundle machine name (e.g., 'image', 'video', 'remote_video').
+     *
+     * @return string
+     *   The field machine name for the media source.
      */
     public static function get_media_field_name($media_type) {
         $field_name = 'field_media_file';
@@ -64,11 +89,46 @@ class MediaHelper {
     }
 
     /**
-     * @param string $media_ids
+     * Retrieves detailed information for one or more media entities.
+     *
+     * Accepts a single ID or a comma-separated list of media IDs and returns
+     * an array of media information including file URLs, image styles, metadata,
+     * and embed data for remote videos.
+     *
+     * @param string|int|int[] $media_ids
+     *   A single media ID, comma-separated string of IDs, or an array of IDs.
      * @param string $image_style
+     *   Optional image style machine name to apply to image media.
+     * @param string $image_loading
+     *   Optional loading attribute value (e.g., 'lazy', 'eager').
+     * @param bool $get_thumbnail
+     *   If TRUE, attempts to retrieve thumbnail information for the media.
+     *
      * @return array
+     *   An array of media information arrays. Each contains keys such as:
+     *   - media_type: The bundle machine name.
+     *   - mid: The media entity ID.
+     *   - fid: The file entity ID (for file-based media).
+     *   - file_url: Absolute URL to the file.
+     *   - file_path: Relative path to the file.
+     *   - file_name: The filename.
+     *   - file_size: File size in bytes.
+     *   - file_sizeunit: Human-readable file size.
+     *   - file_mime: MIME type.
+     *   - file_extension: File extension.
+     *   - created_time: formatted creation timestamp.
+     *   - thumbnail: Thumbnail URL or array.
+     *   - image_style: Applied image style machine name.
+     *   - image_loading: Loading attribute value.
+     *   - alt_text: Alt text for the media.
+     *   - title_text: Title text for the media.
+     *   - render_embed_html: Rendered embed HTML (for remote videos).
+     *   - remote_embed_video: Structured embed data (for remote videos).
+     *
+     * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+     * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
      */
-    public static function get_media_library_info($media_ids, $image_style = '', $image_loading = '', $get_thumbnail = false) {
+    public static function get_media_library_info($media_ids, $image_style = '', $image_loading = '', $get_thumbnail = FALSE) {
         $media_infos = [];
         try {
 
@@ -176,10 +236,14 @@ class MediaHelper {
 
 
     /**
+     * Retrieves all available image styles as an options array.
      *
+     * @return array
+     *   An associative array of image styles, keyed by style machine name with
+     *   style labels as values. Includes a 'None (original)' option.
      */
     public static function get_image_style_options() {
-        $styles_optionlist = \Drupal\image\Entity\ImageStyle::loadMultiple(); // $styles_optionlist = \Drupal::entityTypeManager()->getStorage('image_style')->loadMultiple();
+        $styles_optionlist = \Drupal\image\Entity\ImageStyle::loadMultiple();
         $image_style_options = [];
         $image_style_options[''] = "None (original)";
         foreach ($styles_optionlist as $style) {
@@ -189,15 +253,23 @@ class MediaHelper {
     }
 
     /**
-     * Get the proper embed URL for a remote video media entity with autoplay support.
+     * Retrieves embed URL and metadata for a remote video media entity.
      *
-     * Supports YouTube, Vimeo, or any oEmbed provider.
+     * Parses oEmbed URLs for YouTube and Vimeo to produce iframe-ready embed
+     * URLs with proper video IDs. Falls back to the original URL for other
+     * oEmbed providers.
      *
      * @param int $media_id
-     *   Media entity ID.
+     *   The media entity ID.
      *
-     * @return string|null
-     *   Embed URL ready to use in an iframe, or NULL if not valid.
+     * @return array|null
+     *   An array containing:
+     *   - embed_url: The URL suitable for use in an iframe src.
+     *   - video_id: The extracted video ID, or NULL for non-extracted providers.
+     *   - type: The provider type ('youtube', 'vimeo', or 'oembed').
+     *   Returns NULL if the media is not a remote_video bundle or has no URL.
+     *
+     * @see \Drupal\media\Entity\Media
      */
     public static function get_remote_embed_video($media_id) {
         try {
@@ -254,10 +326,22 @@ class MediaHelper {
 
 
     /**
+     * Attaches inline CSS styles for media entity view modes.
      *
-     * Implements hook_entity_view().
-     * https://api.drupal.org/api/drupal/core%21lib%21Drupal%21Core%21Entity%21entity.api.php/function/hook_entity_view/10
+     * Intended to be called from hook_entity_view() implementations to inject
+     * minimal styling for media thumbnail fields.
      *
+     * @param array $build
+     *   The renderable array for the entity.
+     * @param \Drupal\Core\Entity\EntityInterface $entity
+     *   The entity being viewed.
+     * @param string $view_mode
+     *   The view mode being rendered.
+     * @param string $langcode
+     *   The language code of the entity.
+     *
+     * @see hook_entity_view()
+     * @see https://api.drupal.org/api/drupal/core%21lib%21Drupal%21Core%21Entity%21entity.api.php/function/hook_entity_view/10
      */
     public static function media_attached_style(array &$build, \Drupal\Core\Entity\EntityInterface $entity, $view_mode, $langcode) {
         // Only target media entities of type 'video' in 'media_library' view mode.
@@ -277,7 +361,5 @@ class MediaHelper {
             //throw $th;
         }
     }
-    /**
-     * ------------ END ------------
-     */
+
 }

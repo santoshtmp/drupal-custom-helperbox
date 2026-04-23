@@ -1,0 +1,214 @@
+:root {
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.helperbox-menu {
+  .hamburger-bar {
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    height: 16px;
+    justify-content: space-between;
+    position: relative;
+    width: 24px;
+  }
+
+  .hamburger-bar .bar {
+    background: #1e1e1e;
+    border-radius: 24px;
+    height: 2px;
+    opacity: 1;
+    transform: scaleY(0.9);
+    transform-origin: center;
+    transition: all 0.3s ease-out;
+    width: 100%;
+  }
+
+  .hamburger-bar.is-open {
+    .bar {
+      &:nth-child(1) {
+        transform: translateY(0.313rem) rotate(45deg);
+      }
+
+      &:nth-child(2) {
+        width: 0;
+        opacity: 0;
+      }
+
+      &:nth-child(3) {
+        transform: translateY(-0.5rem) rotate(-45deg);
+      }
+    }
+  }
+
+  .hamburger-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transition: var(--transition);
+    z-index: 200;
+    width: 100%;
+    height: 100%;
+
+    &.is-visible {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+
+  nav.hamburger-menu {
+    position: fixed;
+    top: 0;
+    right: 0;
+    max-width: 340px;
+    width: 100%;
+    height: 100%;
+    background: #ffffff;
+    transform: translateX(100%);
+    transition: var(--transition);
+    z-index: 205;
+    overflow: hidden;
+    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.1);
+
+    &.menu-location-left {
+      left: 0;
+      right: unset;
+      transform: translateX(-100%);
+    }
+
+    &.is-active {
+      transform: translateX(0);
+    }
+  }
+
+  /* For gapping and top for login */
+
+  body.toolbar-horizontal,
+  body.toolbar-vertical {
+
+    nav.menu-panel,
+    .mm-list .panel {
+      padding-top: 32px;
+    }
+  }
+
+  nav.menu-panel,
+  .mm-list .panel {
+    padding-block: 28px;
+  }
+
+  .menu-panel .mm-navbar__title,
+  .mm-list .mm-btn.back-btn {
+    text-transform: uppercase;
+    color: #58595e;
+    font-size: 20px;
+    font-stretch: expanded;
+    font-weight: 600;
+    justify-content: flex-start;
+    line-height: 1;
+    padding: 28px 20px 20px 20px;
+  }
+
+  .panel .mm-list {
+    display: flex;
+    gap: .5rem;
+    flex-direction: column;
+    height: 69svh;
+    overflow: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .mm-item {
+    border-bottom: 1px solid #58595e;
+    margin-inline: 16px;
+
+    &.menu-item--has-children>.mm-btn,
+    &:not(.menu-item--has-children)>.mobile-menu-item-wrapper,
+    .back-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      /* padding: 16px 28px; */
+      background: none;
+      border: none;
+      text-decoration: none;
+      cursor: pointer;
+      box-sizing: border-box;
+      transition: background 0.2s;
+    }
+
+    .menu-mobile-menu {
+      color: #58595e;
+      display: flex;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      text-transform: uppercase;
+      flex: 1;
+      padding: 16px 8px 16px 16px;
+    }
+
+    .mm-btn--next,
+    .back-btn {
+      color: #58595e;
+
+      &::before {
+        content: "";
+        display: flex;
+        border-color: inherit;
+        border-width: 0 2px 2px 0;
+        border-style: solid;
+        width: 6px;
+        height: 6px;
+        transition: all 0.2s ease;
+      }
+    }
+
+    .mm-btn:not(.back-btn) {
+      .menu-mobile-menu {
+        border-right: 1px solid #58595e;
+      }
+
+      .mm-btn--next {
+        height: 100%;
+        padding-block: 8px;
+        width: 52px;
+        display: inline-flex;
+        justify-content: center;
+
+        &:before {
+          transform: rotate(-45deg);
+        }
+      }
+    }
+
+    .back-btn {
+      justify-content: start;
+      gap: 8px;
+      font-family: inherit;
+
+      &:before {
+        transform: rotate(135deg);
+      }
+    }
+
+    .panel {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #fff;
+      transform: translateX(100%);
+      transition: var(--transition);
+      z-index: 10;
+
+      &.open-level {
+        transform: translateX(0);
+      }
+    }
+  }
+}

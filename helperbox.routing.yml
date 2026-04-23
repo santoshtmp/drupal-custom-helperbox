@@ -13,3 +13,22 @@ helperbox.api_test:
   requirements:
     _permission: 'access content'
   methods: [GET]
+# web/core/modules/user/user.routing.yml
+helperbox.user_login:
+  path: '/user-login'
+  defaults:
+    _form: '\Drupal\user\Form\UserLoginForm'
+    _title: 'Log in'
+  requirements:
+    _user_is_logged_in: 'FALSE'
+  options:
+    _maintenance_access: TRUE
+helperbox.user_pass:
+  path: '/user-password'
+  defaults:
+    _form: '\Drupal\user\Form\UserPasswordForm'
+    _title: 'Reset your password'
+  requirements:
+    _access: 'TRUE'
+  options:
+    _maintenance_access: TRUE

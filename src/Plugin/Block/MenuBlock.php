@@ -32,6 +32,7 @@ class MenuBlock extends BlockBase {
   public function build() {
     $config = $this->getConfiguration();
     $menu_layout = isset($config['menu_layout']) ? $config['menu_layout'] : 'default';
+    $menu_layout_subtype = isset($config['menu_layout_subtype']) ? $config['menu_layout_subtype'] : 'menu_dropdown';
     $menu_type = isset($config['menu_type']) ? $config['menu_type'] : 'menu';
     $menu_levels = isset($config['menu_levels']) ? (int)$config['menu_levels'] : 1;
 
@@ -42,12 +43,19 @@ class MenuBlock extends BlockBase {
     $build_context =  [
       '#theme' => 'helperbox_menu',  // This links to the template defined in hook_theme().
       '#menu_layout' => $menu_layout,
+      '#menu_layout_location' => $config['menu_layout_location'] ?? 'right',
+      '#menu_layout_subtype' => $menu_layout_subtype,
+      '#mobile_menu_panel_title' => $config['mobile_menu_panel_title'] ?? 'Menu',
       '#menu_type' => $menu_type,
       '#menu_title' => MenuHelper::get_menu_title($menu_type),
       '#menu_items' => MenuHelper::get_menu_items($menu_type, $menu_levels),
       '#social_link_title' => isset($config['social_link_title']) ? $config['social_link_title'] : '',
       '#social_links' => '', //($menu_layout == 'default') ? '' : theme_get_setting('social_links'),
       '#background_image' => $background_image,
+      '#attributes' => [],
+      '#attached' => [
+        'library' => 'helperbox/helperbox_menu',
+      ],
       '#contextual_links' => [
         // This should match the group in helperbox.links.contextual.yml
         'helperbox_block_menu' => [
@@ -66,6 +74,9 @@ class MenuBlock extends BlockBase {
   public function defaultConfiguration() {
     return [
       'menu_layout' => '',
+      'menu_layout_subtype' => '',
+      'menu_layout_location' => 'right',
+      'mobile_menu_panel_title' => '',
       'menu_title' => '',
       'menu_type' => '',
       'menu_items' => [],
@@ -81,37 +92,20 @@ class MenuBlock extends BlockBase {
     $config = $this->getConfiguration();
 
     /**
-     * block_layout
-     */
-    $menu_layout_selected = isset($config['menu_layout']) ? $config['menu_layout'] : 'default';
-    $options = [
-      'default' => "Default Layout",
-      'desktop' => "Responsive Desktop Layout",
-      'mobile' => "Responsive Mobile Layout",
-    ];
-    $form['menu_layout'] = array(
-      '#type' => 'select',
-      '#title' => $this->t('Menu Layout Style:'),
-      '#options' => $options,
-      '#default_value' => $menu_layout_selected,
-      '#required' => TRUE,
-    );
-
-    /**
      * menu_type
      */
     $menu_type_selected = isset($config['menu_type']) ? $config['menu_type'] : 'home_hero_banner';
     $options = array_merge(['' => 'Select Menu Type'], MenuHelper::get_all_menus());
-    $form['menu_type'] = array(
+    $form['menu_type'] = [
       '#type' => 'select',
-      '#title' => $this->t('Menu Type:'),
+      '#title' => $this->t('Select Menu Type:'),
       '#options' => $options,
       '#default_value' => $menu_type_selected,
       '#required' => TRUE,
-    );
+    ];
 
     /**
-     * 
+     * menu_levels
      */
     $options = range(0, 5);
     unset($options[0]);
@@ -123,6 +117,72 @@ class MenuBlock extends BlockBase {
       '#options' => $options,
       '#description' => $this->t('This maximum number includes the initial level.'),
       '#required' => TRUE,
+    ];
+
+    /**
+     * menu_layout
+     */
+    $menu_layout_selected = isset($config['menu_layout']) ? $config['menu_layout'] : 'default';
+    $options = [
+      'default' => "Default Layout",
+      'desktop' => "Responsive Desktop Layout",
+      'mobile' => "Responsive Mobile Layout",
+    ];
+    $form['menu_layout'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Menu Layout Style:'),
+      '#options' => $options,
+      '#default_value' => $menu_layout_selected,
+      '#required' => TRUE,
+    ];
+
+    /**
+     * menu_layout_location
+     */
+    $menu_layout_location_selected = isset($config['menu_layout_location']) ? $config['menu_layout_location'] : 'right';
+    $form['menu_layout_location'] = [
+      '#type' => 'radios',
+      '#title' => $this->t('Menu Layout Location:'),
+      '#options' => [
+        'right' => $this->t('Right'),
+        'left' => $this->t('Left'),
+      ],
+      '#default_value' => $menu_layout_location_selected,
+      '#states' => [
+        'visible' => [':input[name="settings[menu_layout]"]' => ['value' => 'mobile']],
+      ],
+    ];
+    /**
+     * menu_layout_subtype
+     */
+    $menu_layout_subtype_selected = isset($config['menu_layout_subtype']) ? $config['menu_layout_subtype'] : 'menu_dropdown';
+    $options = [
+      'menu_dropdown' => "Default - Dropdown Menu Layout",
+      'menu_panel' => "Panel Menu Layout",
+    ];
+    $form['menu_layout_subtype'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Mobile Menu Layout Style:'),
+      '#options' => $options,
+      '#default_value' => $menu_layout_subtype_selected,
+      '#states' => [
+        'visible' => [':input[name="settings[menu_layout]"]' => ['value' => 'mobile']],
+      ],
+    ];
+
+    /**
+     * mobile_menu_panel_title
+     */
+    $form['mobile_menu_panel_title'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Mobile Menu Panel Title:'),
+      '#default_value' => isset($config['mobile_menu_panel_title']) ? $config['mobile_menu_panel_title'] : 'Menu',
+      '#states' => [
+        'visible' => [
+          ':input[name="settings[menu_layout]"]' => ['value' => 'mobile'],
+          ':input[name="settings[menu_layout_subtype]"]' => ['value' => 'menu_panel']
+        ],
+      ],
     ];
 
     // /**
@@ -185,9 +245,13 @@ class MenuBlock extends BlockBase {
    */
   public function blockSubmit($form, FormStateInterface $form_state) {
     // Save our custom settings when the form is submitted.
-    $this->setConfigurationValue('menu_layout', $form_state->getValue('menu_layout'));
     $this->setConfigurationValue('menu_type', $form_state->getValue('menu_type'));
     $this->setConfigurationValue('menu_levels', $form_state->getValue('menu_levels'));
+    $this->setConfigurationValue('menu_layout', $form_state->getValue('menu_layout'));
+    $this->setConfigurationValue('menu_layout_subtype', $form_state->getValue('menu_layout_subtype'));
+    $this->setConfigurationValue('menu_layout_location', $form_state->getValue('menu_layout_location'));
+    $this->setConfigurationValue('mobile_menu_panel_title', $form_state->getValue('mobile_menu_panel_title'));
+
     // $this->setConfigurationValue('social_link_title', $form_state->getValue('social_link_title'));
     // $this->setConfigurationValue('background_image', $form_state->getValue('background_image'));
     // $this->setConfigurationValue('background_image_style', $form_state->getValue('background_image_style'));

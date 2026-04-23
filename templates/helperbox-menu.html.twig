@@ -1,22 +1,69 @@
 {#
 /**
- * @file
- * implementation for the helperbox menu.
+ * @file helperbox-menu.html.twig
+ *
+ * Template for rendering the helperbox menu component.
  *
  * Available variables:
- * - menu_layout :: default, mobile
- * - menu_title
- * - menu_items
- * - social_link_title
- * - social_links
- * - background_image
+ * - menu_layout: string - Menu layout type ('default' for desktop, 'mobile' for mobile menu)
+ * - menu_layout_subtype: string - Menu layout subtype
+ * - menu_title: string - The menu title (currently unused in template)
+ * - menu_items: array - The menu items tree structure
+ * - menu_type: string - Type identifier used for CSS class generation
+ * - social_link_title: string - Title for social links section (currently unused)
+ * - social_links: array - Social media links (currently unused)
+ * - background_image: string - Background image URL/path (currently unused)
+ * - attributes: object - HTML attributes for the menu wrapper
+ *
+ * @see @helperbox/macro/menuitems.html.twig
  *
  * @ingroup themeable
  */
 #}
 
 {% import '@helperbox/macro/menuitems.html.twig' as component_menus %}
+<div class="helperbox-menu">
+	{% if menu_items %}
+		{#
+			Choose the appropriate macro based on menu_layout:
+			- 'mobile': Use mobile_menu_links (panel-based navigation with back buttons)
+			- 'desktop' or 'default' or other: Use standard menu_links
+			
+			Parameters:
+			- menu_items: The menu items array
+			- attributes: HTML attributes passed to the macro
+			- 0: Starting menu level (0 = top level)
+			- 'menu-' ~ menu_type: Wrapper class based on menu type
+			- '': Parent title (empty for top level, used in mobile menu back button)
+		#}
 
-{% if menu_items %}
-	{{ component_menus.menu_links(menu_items, attributes, 0,'menu-'~ menu_type) }}
-{% endif %}
+		{% if menu_layout == 'mobile' %}
+
+			<div class="hamburger-menu-wrapper menu-location-{{menu_layout_location}}">
+				<div id="hamburger" class="hamburger-bar">
+					<span class="bar"></span>
+					<span class="bar"></span>
+					<span class="bar"></span>
+				</div>
+				<div id="hamburger-overlay" class="hamburger-overlay"></div>
+
+				{% if menu_layout_subtype == 'menu_panel' %}
+					<nav class="hamburger-menu menu-panel menu-location-{{menu_layout_location}}" id="mmContainer">
+
+						<div class="panel-inner">
+							{{ component_menus.mobile_panel_base_menu_links(menu_items, attributes, 0, 'menu-' ~ menu_type, mobile_menu_panel_title) }}
+						</div>
+					</nav>
+				{% else %}
+					<nav class="hamburger-menu menu-dropdown">
+
+
+						{{ component_menus.menu_links(menu_items, attributes, 0,'mobile-menu-item-wrapper menu-'~ menu_type) }}
+					</nav>
+				{% endif %}
+			</div>
+		{% else %}
+			{{ component_menus.menu_links(menu_items, attributes, 0, 'menu-' ~ menu_type) }}
+		{% endif %}
+	{% endif %}
+</div>
