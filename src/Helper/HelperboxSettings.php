@@ -42,8 +42,8 @@ class HelperboxSettings {
      * @return array
      *   The field rules configuration.
      */
-    public static function getFieldRulesAll() {
-        $config_rules = self::get_config('field_rules_all');
+    public static function getFieldAllRules() {
+        $config_rules = self::get_config('field_all_rules');
         if (!empty($config_rules)) {
             return $config_rules;
         }

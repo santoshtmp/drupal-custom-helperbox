@@ -49,6 +49,28 @@ class HelperboxSettingsForm extends ConfigFormBase {
       ),
     ];
 
+    // Check if a login page alias exists
+    $login_alias = \Drupal::service('path_alias.manager')->getAliasByPath('/user/login');
+    $has_alias = $login_alias !== '/user/login'; // If alias equals original path, no alias exists
+
+    $form['enable_only_alies_login_url'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Enable Only Aliases Login URL'),
+      '#options' => [
+        0 => $this->t('No'),
+        1 => $this->t('Yes'),
+      ],
+      '#default_value' => $config->get('enable_only_alies_login_url'),
+      '#disabled' => !$has_alias,
+      '#description' => $has_alias
+        ? $this->t(
+          'When enabled, only the alias URL will be allowed for login. This means that users will not be able to access the login page using the default system path (e.g., <code>/user/login</code>) and must use the alias URL instead (e.g., <code>/login</code>). This can enhance security by obscuring the default login path.'
+        )
+        : $this->t(
+          'This option is disabled because no alias has been set for the login page (<code>/user/login</code>). Please <a href="/admin/config/search/path">create a URL alias</a> first.'
+        ),
+    ];
+
     $form['enable_unique_node_per_bundle'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Enable unique node/item title per content bundle'),
@@ -65,10 +87,10 @@ class HelperboxSettingsForm extends ConfigFormBase {
       '#description' => $this->t('Configure field rules for entity types and bundles. Format: JSON'),
     ];
 
-    $form['field_rules']['field_rules_all'] = [
+    $form['field_rules']['field_all_rules'] = [
       '#type' => 'textarea',
       '#title' => $this->t('All Field Rules'),
-      '#default_value' => $config->get('field_rules_all') ? json_encode($config->get('field_rules_all'), JSON_PRETTY_PRINT) : '',
+      '#default_value' => $config->get('field_all_rules') ? json_encode($config->get('field_all_rules'), JSON_PRETTY_PRINT) : '',
       '#description' => [
         '#markup' => '
           <p>Rules for field access based on entity type and bundle.</p>
@@ -77,7 +99,14 @@ class HelperboxSettingsForm extends ConfigFormBase {
   "node": {
     "article": {
       "field_access_check": {
-        "field_related_countries": false
+        "field_related_countries": false,
+        "field_highlight_text":true,
+        "field_competency_framework": {
+            "field_featured_image": false,
+            "field_list_items": {
+                "field_cta": false
+            }
+        }
       }
     }
   },
@@ -229,7 +258,7 @@ class HelperboxSettingsForm extends ConfigFormBase {
     parent::submitForm($form, $form_state);
 
     // Parse field rules from JSON
-    $field_rules_all = $form_state->getValue('field_rules_all');
+    $field_all_rules = $form_state->getValue('field_all_rules');
     $field_rules_node = $form_state->getValue('field_rules_node');
     $field_rules_form = $form_state->getValue('field_rules_form');
     $field_rules_max_content = $form_state->getValue('field_rules_max_content');
@@ -241,8 +270,9 @@ class HelperboxSettingsForm extends ConfigFormBase {
         'cdn_lightgallery' => $form_state->getValue(['cdn', 'cdn_lightgallery']),
       ])
       ->set('enable_media_custom_thumbnail', $form_state->getValue('enable_media_custom_thumbnail'))
+      ->set('enable_only_alies_login_url', $form_state->getValue('enable_only_alies_login_url'))
       ->set('enable_unique_node_per_bundle', $form_state->getValue('enable_unique_node_per_bundle'))
-      ->set('field_rules_all', $field_rules_all ? json_decode($field_rules_all, TRUE) : [])
+      ->set('field_all_rules', $field_all_rules ? json_decode($field_all_rules, TRUE) : [])
       ->set('field_rules_node', $field_rules_node ? json_decode($field_rules_node, TRUE) : [])
       ->set('field_rules_form', $field_rules_form ? json_decode($field_rules_form, TRUE) : [])
       ->set('field_rules_max_content', $field_rules_max_content ? json_decode($field_rules_max_content, TRUE) : [])
@@ -255,12 +285,12 @@ class HelperboxSettingsForm extends ConfigFormBase {
   public function validateForm(array &$form, FormStateInterface $form_state) {
     parent::validateForm($form, $form_state);
 
-    // Validate field_rules_all JSON
-    $field_rules_all = trim($form_state->getValue('field_rules_all'));
-    if (!empty($field_rules_all)) {
-      json_decode($field_rules_all);
+    // Validate field_all_rules JSON
+    $field_all_rules = trim($form_state->getValue('field_all_rules'));
+    if (!empty($field_all_rules)) {
+      json_decode($field_all_rules);
       if (json_last_error() !== JSON_ERROR_NONE) {
-        $form_state->setErrorByName('field_rules_all', $this->t('All Field Rules must be valid JSON. Error: @error', [
+        $form_state->setErrorByName('field_all_rules', $this->t('All Field Rules must be valid JSON. Error: @error', [
           '@error' => json_last_error_msg(),
         ]));
       }

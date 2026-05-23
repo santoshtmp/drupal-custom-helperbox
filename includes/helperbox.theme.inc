@@ -115,6 +115,11 @@ function helperbox_theme() {
         'template' => 'helperbox-add-cta',
     ];
 
+    $theme['views_view_helperbox_slider_swiper'] = [
+        'variables' => [],
+        'base hook' => 'views_view_unformatted',
+    ];
+
     return $theme;
 }
 

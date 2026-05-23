@@ -49,11 +49,32 @@
         });
       });
 
-      // Handle contextual links toggle for render block fields.
+      // // Handle contextual links toggle for render block fields.
+      // once('helperbox-admin', '.edit-field-helperbox-renderblock', context).forEach(function (element) {
+      //   var $element = $(element);
+      //   $element.find('.contextual.edit-adminlinks .trigger').on('click', function () {
+      //     $element.find('.edit-adminlinks').toggleClass('open');
+      //   });
+      // });
+
+      // Use document-level delegation to handle dynamically nested blocks.
       once('helperbox-admin', '.edit-field-helperbox-renderblock', context).forEach(function (element) {
         var $element = $(element);
-        $element.find('.contextual.edit-adminlinks .trigger').on('click', function () {
-          $element.find('.edit-adminlinks').toggleClass('open');
+
+        // Use delegated event on the element to catch nested triggers too.
+        $element.on('click.helperboxAdmin', '.contextual.edit-adminlinks .trigger', function (e) {
+          e.stopPropagation(); // Prevent bubbling to parent block's handler.
+
+          var $adminLinks = $(this).closest('.edit-adminlinks');
+          var isOpen = $adminLinks.hasClass('open');
+
+          // Close all open contextual menus first.
+          $('.edit-adminlinks.open').removeClass('open');
+
+          // Toggle current one.
+          if (!isOpen) {
+            $adminLinks.addClass('open');
+          }
         });
       });
     }

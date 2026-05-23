@@ -12,22 +12,29 @@ use Drupal\views\Views;
  * https://www.drupal.org/documentation
  * https://drupal.stackexchange.com/questions/223406/how-do-i-programmatically-load-a-custom-block
  * https://www.drupal.org/forum/support/module-development-and-code-questions/2018-04-15/solved-render-block_content
- * https://api.drupal.org/api/drupal/core%21modules%21block%21block.api.php/group/block_api/11.x 
+ * https://api.drupal.org/api/drupal/core%21modules%21block%21block.api.php/group/block_api/11.x
  * https://api.drupal.org/api/drupal/modules%21block%21block.module/function/block_load/7.x
  */
 
 /**
- * Class to get particular block data
+ * Class to get particular block data.
+ *
+ * Usage examples:
+ *   GetBlock::block('creative_sitebranding');           // machine name → full themed output
+ *   GetBlock::block('system_branding_block');           // plugin ID    → raw inner content
+ *   GetBlock::block('views_block:my_view-block_1');    // plugin ID    → raw inner content
+ *   GetBlock::block('creative_sitebranding', [], true); // returns HTML string
+ *   GetBlock::content_block_data(7);
+ *   GetBlock::settings_data('fimi_footerdescription');
  */
-// GetBlock::content_block_data(7);
-// GetBlock::content_block_data(8);
-// GetBlock::settings_data('fimi_footerdescription');
-// GetBlock::settings_data('fimi_views_block__home_block_collection_block_1');
 class GetBlock {
 
-
     /**
-     * @param string $block_machine_id Load a block by its machine name (ID)
+     * Load a block by its machine name and return its settings/data.
+     *
+     * @param string $block_machine_id  The placed block machine name (e.g. 'creative_sitebranding').
+     *
+     * @return array
      */
     public static function settings_data($block_machine_id) {
         $settings_data = [];
@@ -37,18 +44,17 @@ class GetBlock {
             if ($block) {
                 $settings = $block->get('settings');
                 $settings['block_id'] = $block->id();
-                $settings['region'] = $block->getRegion();
+                $settings['region']    = $block->getRegion();
                 $settings['plugin_id'] = $block->getPluginId();
-                // 
-                $settings_data =  $settings;
-                // 
+
+                $settings_data = $settings;
+
                 if ($settings['provider'] == 'helperbox') {
-                    // $plugin_id = $block->get('plugin');
-                    $plugin = \Drupal::service('plugin.manager.block')->createInstance($settings['plugin_id'], []);
+                    // Cast plugin_id to string to avoid markup object issues.
+                    $plugin_id_str = (string) $settings['plugin_id'];
+                    $plugin = \Drupal::service('plugin.manager.block')->createInstance($plugin_id_str, []);
                     // Get the build data from the block plugin.
                     $settings_data = $plugin->build();
-                    // // Optionally, render the block
-                    // // $rendered_output = \Drupal::service('renderer')->render($build);
                 } elseif ($settings['provider'] == 'views') {
                     if (strpos($settings['plugin_id'], 'views_block:') === 0) {
                         [$prefix, $view_info] = explode(':', $settings['plugin_id']);
@@ -56,11 +62,11 @@ class GetBlock {
                         $settings_data = self::view_block_data($view_name, $display_id);
                     }
                 } elseif ($settings['provider'] == 'block_content') {
+                    // Reserved for future block_content handling.
                     // $block_manager = \Drupal::service('plugin.manager.block');
                     // $plugin_block = $block_manager->createInstance($settings['plugin_id'], []);
                     // $render_array = $plugin_block->build();
                 }
-                // 
             }
         } catch (\Throwable $th) {
             UtilHelper::helperbox_error_log($th);
@@ -69,18 +75,22 @@ class GetBlock {
     }
 
     /**
-     * @param int $block_id
+     * Load a custom block content entity and return its field values.
+     *
+     * @param int $block_id  The block content entity ID (e.g. 7).
+     *
+     * @return array
      */
     public static function content_block_data($block_id) {
         $content_data = [];
         try {
             // Load the block content by its ID. (Example: 1)
-            $block_content = BlockContent::load($block_id);
+            $block_content = BlockContent::load((int) $block_id);
 
             if ($block_content) {
                 // Get the block ID and type.
-                // $content_data['block_id'] = $block_content->id();
-                // $content_data['block_type'] = $block_content->bundle();
+                $content_data['block_id'] = $block_content->id();
+                $content_data['block_type'] = $block_content->bundle();
                 // $content_data['body'] = $block_content->get('body')->value ?? '';
                 $fields = $block_content->getFields();
                 foreach ($fields as $field_name => $field_item) {
@@ -100,17 +110,21 @@ class GetBlock {
         return $content_data;
     }
 
-
     /**
-     * 
+     * Get raw result rows from a Views block display.
+     *
+     * @param string $view_machine_name  The view machine name.
+     * @param string $display_id         The display ID (e.g. 'block_1').
+     *
+     * @return array|false
      */
     public static function view_block_data($view_machine_name, $display_id) {
         try {
             // Load the view by its machine name.
             $view = Views::getView($view_machine_name);
             if ($view) {
-                if (!$view || !$view->access($display_id)) {
-                    return []; // or throw exception / return empty array
+                if (!$view->access($display_id)) {
+                    return [];
                 }
                 // Set the display ID to the block display.
                 $view->setDisplay($display_id);
@@ -127,14 +141,21 @@ class GetBlock {
 
     /**
      * Get the fully rendered output of a Views block display.
+     *
+     * @param string $view_id      The view machine name.
+     * @param string $display_id   The display ID (e.g. 'block_1').
+     * @param array  $previewArgs  Optional arguments to pass to the view.
+     *
+     * @return array|false
      */
     public static function get_rendered_views_block(string $view_id, string $display_id, $previewArgs = []) {
         try {
             $view = Views::getView($view_id);
 
             if (!$view || !$view->access($display_id)) {
-                return []; // or throw exception / return empty array
+                return [];
             }
+
             $render = $view->preview($display_id, $previewArgs);
 
             // Set the display (block_11, page_1, etc.)
@@ -154,44 +175,128 @@ class GetBlock {
 
             return $render;
         } catch (\Throwable $th) {
-            //throw $th;
+            UtilHelper::helperbox_error_log($th);
         }
         return false;
     }
 
     /**
-     * Render a block by its plugin ID and configuration.
+     * Render a block by either its MACHINE NAME or PLUGIN ID.
+     *
+     * Auto-detects input type:
+     *   - If a placed block entity exists with that machine name → full themed render
+     *     (with block.html.twig wrapper, CSS block ID, contextual links, theme classes)
+     *   - If no entity found → treats as plugin ID → raw inner content render
+     *
+     * Examples:
+     *   GetBlock::render_block('creative_sitebranding');            // machine name → full themed output
+     *   GetBlock::render_block('system_branding_block');            // plugin ID    → raw inner content
+     *   GetBlock::render_block('views_block:my_view-block_1');     // plugin ID    → raw inner content
+     *   GetBlock::render_block('creative_sitebranding', [], true);  // returns HTML string
+     *
+     * @param string $block_id    Block machine name OR plugin ID.
+     * @param array  $config      Optional config (only used in plugin ID mode).
+     * @param bool   $renderhtml  If TRUE, returns HTML string; otherwise render array.
+     *
+     * @return array|string
      */
-    public static function render_block($plugin_id, array $config = [], $renderhtml = false) {
-        /** @var \Drupal\Core\Block\BlockManagerInterface $block_manager */
-        $block_manager = \Drupal::service('plugin.manager.block');
+    public static function render_block($block_id, array $config = [], $renderhtml = false) {
+        // Cast to string to guard against ViewsRenderPipelineMarkup or other objects.
+        $block_id = (string) $block_id;
 
-        /** @var \Drupal\Core\Render\RendererInterface $renderer */
-        $renderer = \Drupal::service('renderer');
-
-        // 
-        $account = \Drupal::currentUser();
-
-        // block
-        $block = $block_manager->createInstance($plugin_id, $config);
-
-        // Access check (must support bool OR AccessResult).
-        $access = $block->access($account);
-        if ($access instanceof \Drupal\Core\Access\AccessResultInterface) {
-            if (!$access->isAllowed()) {
-                return [];
-            }
-        } elseif ($access === FALSE) {
+        if (empty($block_id)) {
             return [];
         }
 
-        // Build render array.
-        $build = $block->build();
+        /** @var \Drupal\Core\Render\RendererInterface $renderer */
+        $renderer = \Drupal::service('renderer');
+        $account  = \Drupal::currentUser();
 
-        // 
-        if ($renderhtml) {
-            return $renderer->render($build);
+        // -------------------------------------------------------------------------
+        // Auto-detect: try loading as a placed block entity first.
+        // -------------------------------------------------------------------------
+        try {
+            $block_entity = Block::load($block_id);
+
+            if ($block_entity) {
+                // Access check.
+                if (!$block_entity->access('view', $account)) {
+                    return [];
+                }
+
+                // Renders with full block.html.twig wrapper, contextual links,
+                // block CSS ID, theme classes etc.
+                $build = \Drupal::entityTypeManager()
+                    ->getViewBuilder('block')
+                    ->view($block_entity);
+
+                if (empty($build)) {
+                    return [];
+                }
+
+                if ($renderhtml) {
+                    return (string) $renderer->render($build);
+                }
+
+                return $build;
+            }
+        } catch (\Throwable $th) {
+            // Log error but continue — will fall through to plugin ID attempt below.
+            \Drupal::logger('helperbox')->error('Block entity render error for @id: @message', [
+                '@id'      => $block_id,
+                '@message' => $th->getMessage(),
+            ]);
         }
-        return $build;
+
+        // -------------------------------------------------------------------------
+        // No entity found → treat as plugin ID → raw inner content.
+        // -------------------------------------------------------------------------
+        try {
+            /** @var \Drupal\Core\Block\BlockManagerInterface $block_manager */
+            $block_manager = \Drupal::service('plugin.manager.block');
+
+            // Guard against unknown plugin IDs.
+            if (!$block_manager->hasDefinition($block_id)) {
+                // At this point neither entity nor plugin was found — this is a real problem.
+                $message = 'Block not found as entity or plugin: ' . $block_id;
+                \Drupal::logger('helperbox')->warning($message);
+                \Drupal::messenger()->addWarning($message);
+                return [];
+            }
+
+            // Instantiate the block plugin.
+            $block = $block_manager->createInstance($block_id, $config);
+
+            // Access check — supports both AccessResultInterface and legacy bool.
+            $access = $block->access($account);
+            if ($access instanceof \Drupal\Core\Access\AccessResultInterface) {
+                if (!$access->isAllowed()) {
+                    return [];
+                }
+            } elseif ($access === FALSE) {
+                return [];
+            }
+
+            // Build the render array.
+            $build = $block->build();
+
+            if (empty($build)) {
+                return [];
+            }
+
+            if ($renderhtml) {
+                return (string) $renderer->render($build);
+            }
+
+            return $build;
+        } catch (\Throwable $th) {
+            \Drupal::logger('helperbox')->error('Block plugin render error for @id: @message', [
+                '@id'      => $block_id,
+                '@message' => $th->getMessage(),
+            ]);
+        }
+
+        // Both attempts failed — return empty.
+        return [];
     }
 }

@@ -18,6 +18,6 @@ use Drupal\helperbox\Helper\FormField;
  */
 function helperbox_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
     // Call helper to apply more complex field rules.
-    FormField::applyFormFieldCondition($form, $form_state, $form_id);
+    FormField::get_instance()->applyFormFieldCondition($form, $form_state, $form_id);
 }
 

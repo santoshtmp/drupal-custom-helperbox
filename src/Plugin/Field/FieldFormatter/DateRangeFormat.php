@@ -29,7 +29,7 @@ class DateRangeFormat extends DateRangeCustomFormatter {
      */
     public static function defaultSettings() {
         $make = [
-            'helperbox_formatter' => false,
+            'showdatestatus' => FALSE,
         ];
         return $make + parent::defaultSettings();
     }
@@ -38,39 +38,121 @@ class DateRangeFormat extends DateRangeCustomFormatter {
      * {@inheritdoc}
      */
     public function viewElements(FieldItemListInterface $items, $langcode) {
-        // @todo Evaluate removing this method in
-        // https://www.drupal.org/node/2793143 to determine if the behavior and
-        // markup in the base class implementation can be used instead.
         $elements = [];
         $separator = $this->getSetting('separator');
-        // $helperbox_formatter = $this->getSetting('helperbox_formatter');
+        $showdatestatus = $this->getSetting('showdatestatus');
+
+        // Fresh DateTimeImmutable in UTC — avoids stale request-time integer
+        // from getCurrentTime() and supports both ->format() and ->getTimestamp().
+        $now_dt = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+
+        // Pull field definition outside the loop — it doesn't change per item.
+        $field_definition = $items->getFieldDefinition();
+        $datetime_type = $field_definition->getFieldStorageDefinition()
+            ->getSettings()['datetime_type'] ?? 'datetime';
 
         foreach ($items as $delta => $item) {
-            if (!empty($item->start_date) && !empty($item->end_date)) {
-                /** @var \Drupal\Core\Datetime\DrupalDateTime $start_date */
-                $start_date = $item->start_date;
-                /** @var \Drupal\Core\Datetime\DrupalDateTime $end_date */
-                $end_date = $item->end_date;
 
-                if ($start_date->getTimestamp() !== $end_date->getTimestamp()) {
-                    // $elements[$delta] = $this->renderStartEnd($start_date, $separator, $end_date);
+            $has_start = !empty($item->start_date);
+            $has_end   = !empty($item->end_date);
 
-                    $element = [];
-                    if ($this->startDateIsDisplayed()) {
-                        $element[DateTimeRangeDisplayOptions::StartDate->value] = $this->buildDate($start_date);
-                    }
-                    if ($this->startDateIsDisplayed() && $this->endDateIsDisplayed()) {
-                        $element['separator'] = ['#plain_text' => ' ' . $separator . ' '];
-                    }
-                    if ($this->endDateIsDisplayed()) {
-                        $element[DateTimeRangeDisplayOptions::EndDate->value] = $this->buildDate($end_date);
-                    }
+            // Skip if neither date is present.
+            if (!$has_start && !$has_end) {
+                continue;
+            }
 
-                    $elements[$delta] = $element;
+            $start_date = $has_start ? $item->start_date : NULL;
+            $end_date   = $has_end   ? $item->end_date   : NULL;
+
+            $element = [];
+
+            // Add status if enabled.
+            if ($showdatestatus) {
+                $status = '';
+                $status_class = '';
+
+                if ($datetime_type === 'date') {
+                    // Date-only field: strip time, compare as Ymd strings.
+                    // Avoids timezone shifts that occur when converting
+                    // date-only values to Unix timestamps.
+                    $now_compare   = $now_dt->format('Ymd');
+                    $start_compare = $has_start ? $start_date->format('Ymd') : NULL;
+                    $end_compare   = $has_end   ? $end_date->format('Ymd')   : NULL;
                 } else {
-                    $elements[$delta] = $this->buildDate($start_date);
+                    // Datetime field: compare full Unix timestamps.
+                    $now_compare   = $now_dt->getTimestamp();
+                    $start_compare = $has_start ? $start_date->getTimestamp() : NULL;
+                    $end_compare   = $has_end   ? $end_date->getTimestamp()   : NULL;
+                }
+
+                if ($this->startDateIsDisplayed() && $this->endDateIsDisplayed()) {
+                    // Normal full-range comparison.
+                    if ($now_compare < $start_compare) {
+                        $status = $this->t('Upcoming');
+                        $status_class = 'upcoming';
+                    } elseif ($now_compare > $end_compare) {
+                        $status = $this->t('Past');
+                        $status_class = 'past';
+                    } else {
+                        $status = $this->t('Ongoing');
+                        $status_class = 'ongoing';
+                    }
+                } elseif ($this->startDateIsDisplayed()) {
+                    // Start only: upcoming if not yet reached, past otherwise.
+                    if ($now_compare < $start_compare) {
+                        $status = $this->t('Upcoming');
+                        $status_class = 'upcoming';
+                    } elseif ($now_compare > $start_compare) {
+                        $status = $this->t('Past');
+                        $status_class = 'past';
+                    } else {
+                        $status = $this->t('Ongoing');
+                        $status_class = 'ongoing';
+                    }
+                } elseif ($this->endDateIsDisplayed()) {
+                    // End only: past if end has passed, ongoing otherwise.
+                    if ($now_compare < $end_compare) {
+                        $status = $this->t('Upcoming');
+                        $status_class = 'upcoming';
+                    } elseif ($now_compare > $end_compare) {
+                        $status = $this->t('Past');
+                        $status_class = 'past';
+                    } else {
+                        $status = $this->t('Ongoing');
+                        $status_class = 'ongoing';
+                    }
+                }
+
+                $element['status'] = [
+                    '#type' => 'html_tag',
+                    '#tag' => 'span',
+                    '#attributes' => [
+                        'class' => [
+                            'date__status',
+                            'date__status--' . $status_class,
+                        ],
+                    ],
+                    '#value' => $status,
+                ];
+            } else {
+                // Start date.
+                if ($this->startDateIsDisplayed()) {
+                    $element[DateTimeRangeDisplayOptions::StartDate->value] = $this->buildDate($start_date);
+                }
+
+                // Separator — only when both dates are present and displayed.
+                if ($this->startDateIsDisplayed() && $this->endDateIsDisplayed()) {
+                    $element['separator'] = [
+                        '#plain_text' => ' ' . $separator . ' ',
+                    ];
+                }
+
+                // End date.
+                if ($this->endDateIsDisplayed()) {
+                    $element[DateTimeRangeDisplayOptions::EndDate->value] = $this->buildDate($end_date);
                 }
             }
+            $elements[$delta] = $element;
         }
 
         return $elements;
@@ -82,13 +164,26 @@ class DateRangeFormat extends DateRangeCustomFormatter {
     public function settingsForm(array $form, FormStateInterface $form_state) {
         $form = parent::settingsForm($form, $form_state);
 
-        // $form['helperbox_formatter'] = [
-        //     '#type' => 'checkbox',
-        //     '#title' => $this->t('Helperbox Formatter'),
-        //     '#default_value' => $this->getSetting('helperbox_formatter'),
-        //     '#description' => $this->t('Format as "1 Feb – 21 Apr, 2022" or "1 Feb – 21 Apr, 2022 12:30 PM" or "1 Feb – 21 Apr, 2022 12:30 PM - 02:10 PM"'),
-        // ];
+        $form['showdatestatus'] = [
+            '#type' => 'checkbox',
+            '#title' => $this->t('Show As Date Status (Upcoming, Ongoing, Past)'),
+            '#default_value' => $this->getSetting('showdatestatus'),
+            '#description' => $this->t('When enabled, this will display the status of the date range (e.g., Upcoming, Ongoing, Past) based on the current date.'),
+        ];
 
         return $form;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function settingsSummary() {
+        $summary = parent::settingsSummary();
+
+        if ($this->getSetting('showdatestatus')) {
+            $summary[] = $this->t('Date status enabled (Upcoming / Ongoing / Past)');
+        }
+
+        return $summary;
     }
 }

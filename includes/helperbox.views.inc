@@ -8,6 +8,9 @@
 use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\query\QueryPluginBase;
 use Drupal\helperbox\Helper\UtilHelper;
+use Drupal\helperbox\Plugin\views\filter\DateRangeSelector;
+use Drupal\helperbox\Plugin\views\filter\DateRangeStatus;
+use Drupal\helperbox\Plugin\views\filter\DateSelector;
 
 /**
  * Implements hook_views_query_alter().
@@ -68,13 +71,14 @@ function helperbox_views_query_alter(ViewExecutable $view, QueryPluginBase $quer
  * Implements hook_views_data_alter().
  */
 function helperbox_views_data_alter(array &$data) {
+    $group = t('HelperBox');
     $data['views']['helperbox_count_node'] = [
         'title' => t('Count node'),
         'help'  => t('Count content type node'),
         'field' => [
             'id' => 'helperbox_count_node',
         ],
-        'group' => t('HelperBox'),
+        'group' => $group,
     ];
     $data['views']['helperbox_renderblock'] = [
         'title' => t('Render Block'),
@@ -85,7 +89,7 @@ function helperbox_views_data_alter(array &$data) {
         'area' => [
             'id' => 'helperbox_renderblock',
         ],
-        'group' => t('HelperBox'),
+        'group' => $group,
     ];
     $data['views']['helperbox_custom_text'] = [
         'title' => t('Full HTML Custom Text'),
@@ -93,7 +97,7 @@ function helperbox_views_data_alter(array &$data) {
         'field' => [
             'id' => 'helperbox_custom_text',
         ],
-        'group' => t('HelperBox'),
+        'group' => $group,
     ];
     $data['views']['helperbox_add_media'] = [
         'title' => t('Add media'),
@@ -101,7 +105,7 @@ function helperbox_views_data_alter(array &$data) {
         'field' => [
             'id' => 'helperbox_add_media',
         ],
-        'group' => t('HelperBox'),
+        'group' => $group,
     ];
     $data['views']['helperbox_add_cta'] = [
         'title' => t('Add CTA'),
@@ -109,6 +113,10 @@ function helperbox_views_data_alter(array &$data) {
         'field' => [
             'id' => 'helperbox_add_cta',
         ],
-        'group' => t('HelperBox'),
+        'group' => $group,
     ];
+
+    $data = DateRangeStatus::views_data_alter($data, $group);
+    $data = DateRangeSelector::views_data_alter($data, $group);
+    $data = DateSelector::views_data_alter($data, $group);
 }

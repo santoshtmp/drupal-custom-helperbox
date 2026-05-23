@@ -3,7 +3,7 @@ type: module
 description: "Provides a collection of helper utilities including custom blocks, views helpers, field formatters, theme suggestions, preprocess hooks and API tools."
 core_version_requirement: ^11
 package: Custom
-version: 11.3.1
+version: 11+
 configure: helperbox.settings
 dependencies:
   - drupal:system
@@ -14,5 +14,5 @@ dependencies:
   - drupal:media_library_form_element
   - drupal:menu_item_extras
 
-# Information added by Developer 2026-03-20
-localversion: 2026032000
+# Information added by Developer 2026-04-24
+localversion: 2026042400

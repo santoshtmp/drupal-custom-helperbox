@@ -10,6 +10,74 @@ namespace Drupal\helperbox\Helper;
 class FormField {
 
     /**
+     * Singleton instance of the class.
+     *
+     * @since 1.0.0
+     * @var static|null
+     */
+    protected static $instance = null;
+
+
+    // This will hold all the field rules loaded from configuration.
+    public $fieldallrules = [];
+
+    public $fieldnoderules = [];
+
+    /**
+     * Get singleton instance of the class.
+     *
+     * Uses late static binding to ensure the correct class
+     * instance is returned when extending this class.
+     *
+     * @since 1.0.0
+     *
+     * @return static The singleton instance
+     */
+    public static function get_instance(): static {
+        if (null === static::$instance) {
+            static::$instance = new static();
+        }
+        return static::$instance;
+    }
+
+    /**
+     * Prevent cloning of the instance.
+     *
+     * Ensures singleton pattern is maintained.
+     *
+     * @since 1.0.0
+     * @return void
+     */
+    final protected function __clone() {
+    }
+
+    /**
+     * Prevent unserializing of the instance.
+     *
+     * @since 1.0.0
+     * @return void
+     * @throws \Exception When attempting to unserialize the singleton
+     */
+    final public function __wakeup() {
+        throw new \Exception('Cannot unserialize singleton');
+    }
+
+    /**
+     * Constructor (protected to prevent direct instantiation).
+     *
+     * Initializes the Vite integration by checking if the dev server
+     * is running via hot file detection. If the hot file exists,
+     * dev mode is enabled and the server URL is read from the file.
+     *
+     * @since 1.0.0
+     */
+    protected function __construct() {
+        // Initialization code can go here if needed in the future.
+        $this->fieldallrules = HelperboxSettings::getFieldAllRules();
+        $this->fieldnoderules = HelperboxSettings::getFieldRulesNode();
+    }
+
+    /**
      * Applies conditional #access rules on a Node form.
      *
      * @param array &$form
@@ -23,7 +91,7 @@ class FormField {
      * @throws \InvalidArgumentException
      *   If $form is not an array or $nid is invalid.
      */
-    public static function applyFormFieldCondition(&$form, $form_state, $form_id) {
+    public function applyFormFieldCondition(&$form, $form_state, $form_id) {
         try {
 
             if (!is_array($form)) {
@@ -31,7 +99,7 @@ class FormField {
             }
 
             // Run generic field checks (works on any form).
-            self::checkFieldsByFormId($form, $form_state, $form_id);
+            $this->checkFieldsByFormId($form, $form_state, $form_id);
 
             // Optional: admin only.
             $admin_context = \Drupal::service('router.admin_context');
@@ -40,8 +108,8 @@ class FormField {
             }
 
             // Apply node/block specific checks.
-            self::applyNodeFormFieldCondition($form, $form_state, $form_id);
-            self::applyBlockFormFieldCondition($form, $form_state, $form_id);
+            $this->applyNodeFormFieldCondition($form, $form_state, $form_id);
+            $this->applyBlockFormFieldCondition($form, $form_state, $form_id);
         } catch (\Throwable $th) {
             UtilHelper::helperbox_error_log($th);
         }
@@ -57,7 +125,7 @@ class FormField {
      * @param string $form_id
      *   The form ID (e.g., node_article_form).
      */
-    public static function applyNodeFormFieldCondition(&$form, $form_state, $form_id) {
+    public function applyNodeFormFieldCondition(&$form, $form_state, $form_id) {
         try {
             // Only node add/edit forms.
             if (!str_starts_with($form_id, 'node_') || !str_ends_with($form_id, '_form')) {
@@ -107,8 +175,8 @@ class FormField {
                 ];
             }
             //
-            self::checkAllFields($form, $form_state, $node);
-            self::checkNodeFields($form, $form_state, $node);
+            $this->checkAllFields($form, $form_state, $node);
+            $this->checkNodeFields($form, $form_state, $node);
 
             // // Optional: pass to JS (if you need it client-side).
             // $form['#attached']['drupalSettings']['nid'] = $nid ?? 0;
@@ -137,7 +205,7 @@ class FormField {
      * @param string $form_id
      *   The form ID.
      */
-    public static function applyBlockFormFieldCondition(&$form, $form_state, $form_id) {
+    public function applyBlockFormFieldCondition(&$form, $form_state, $form_id) {
         try {
             if (!str_starts_with($form_id, 'block_content_') || !str_ends_with($form_id, '_form')) {
                 return;
@@ -183,6 +251,9 @@ class FormField {
                     ],
                 ];
             }
+
+            // 
+            // $this->checkAllFields($form, $form_state, $entity);
         } catch (\Throwable $th) {
             //throw $th;
             UtilHelper::helperbox_error_log($th);
@@ -248,24 +319,23 @@ class FormField {
      *
      * @return void
      */
-    private static function checkNodeFields(array &$form, $form_state, $node,) {
+    private function checkNodeFields(array &$form, $form_state, $node,) {
         // Get the defined field rules
-        $rules = HelperboxSettings::getFieldRulesNode();
         $nid    = $node->id();
         $bundle = $node->bundle();
 
         // Skip if no rules for this bundle
-        if (!isset($rules[$bundle])) {
+        if (!isset($this->fieldnoderules[$bundle])) {
             return;
         }
 
-        foreach ($rules[$bundle] as $nodeId => $fieldConditions) {
+        foreach ($this->fieldnoderules[$bundle] as $nodeId => $fieldConditions) {
             // For all node id
             if ($nodeId == '-1' || $nodeId === 0 || $nodeId < 0) {
                 if (is_array($fieldConditions)) {
                     foreach ($fieldConditions as $fieldType => $fieldValue) {
                         if ($fieldType == 'referenceField' && is_array($fieldValue)) {
-                            self::checkNodeReferenceField($form, $fieldValue, true);
+                            $this->checkNodeReferenceField($form, $fieldValue, true);
                         } else {
                             if (is_string($fieldValue)) {
                                 $form[$fieldValue]['#access'] = false;
@@ -285,7 +355,7 @@ class FormField {
             if ($thisNodeShow && is_array($fieldConditions)) {
                 foreach ($fieldConditions as $fieldType => $fieldValue) {
                     if ($thisNodeShow && $fieldType == 'referenceField' && is_array($fieldValue)) {
-                        self::checkNodeReferenceField($form, $fieldValue, $thisNodeShow);
+                        $this->checkNodeReferenceField($form, $fieldValue, $thisNodeShow);
                     } else {
                         if (is_string($fieldValue)) {
                             $form[$fieldValue]['#access'] = $thisNodeShow;
@@ -314,7 +384,7 @@ class FormField {
      *
      * @return void
      */
-    private static function checkNodeReferenceField(&$form, $fields, $thisNodeShow) {
+    private function checkNodeReferenceField(&$form, $fields, $thisNodeShow) {
         foreach ($fields as $field_name => $fields_access_check) {
             if (is_bool($fields_access_check)) {
                 $form[$field_name]['#access'] = $fields_access_check;
@@ -334,7 +404,7 @@ class FormField {
                             $subform[$field]['#access'] = $check;
                         }
                         if ($thisNodeShow && $field == 'referenceField' && is_array($check)) {
-                            self::checkNodeReferenceField($subform, $check, $thisNodeShow);
+                            $this->checkNodeReferenceField($subform, $check, $thisNodeShow);
                         }
                     }
                 }
@@ -353,18 +423,19 @@ class FormField {
 
      * @return void
      */
-    private static function checkAllFields(array &$form, $form_state, $entity) {
-        // Get the defined field rules
-        $fieldrules = HelperboxSettings::getFieldRulesAll();
-
+    private function checkAllFields(array &$form, $form_state, $entity, $field_access_check = []) {
         // 
         $entity_type = $entity->getEntityTypeId();         // Get Entity type
         $entity_bundle = $entity->bundle();         // Get Entity bundle
 
-        $field_access_check = [];
-        if (isset($fieldrules[$entity_type][$entity_bundle]['field_access_check'])) {
-            $field_access_check = $fieldrules[$entity_type][$entity_bundle]['field_access_check'];
+        $rules = $this->fieldallrules[$entity_type][$entity_bundle]['field_access_check'] ?? [];
+
+        // Get the defined field rules
+        if (empty($field_access_check)) {
+            $field_access_check = $rules;
         }
+
+        $field_access_check = array_merge($field_access_check, $rules);
 
         // Iterate over *all* form elements that look like a field widget.
         foreach (\Drupal\Core\Render\Element::children($form) as $field_name) {
@@ -387,13 +458,13 @@ class FormField {
             $target_bundles = $field_def->getSetting('handler_settings')['target_bundles'] ?? []; // This is content type : resource, team, category ...
 
             // 
-            if (isset($field_access_check[$field_name])) {
+            if (isset($field_access_check[$field_name]) && is_bool($field_access_check[$field_name])) {
                 $form[$field_name]['#access'] = $field_access_check[$field_name];
             }
 
             // Handle entity reference fields
             $is_reference = in_array($field_type, ['entity_reference', 'entity_reference_revisions'], TRUE);
-            if ($is_reference) { //&& $field->count() > 0
+            if ($is_reference && isset($field_access_check[$field_name])) { //&& $field->count() > 0
                 $widget = &$form[$field_name]['widget'];
                 foreach (\Drupal\Core\Render\Element::children($widget) as $delta) {
                     if (!isset($widget[$delta]['subform'])) {
@@ -403,11 +474,11 @@ class FormField {
                     $subform = &$widget[$delta]['subform'];
                     $referenced_entity = $field->get($delta)->entity ?? NULL;
                     if (!$referenced_entity) {
-                        $referenced_entity = self::getTargetEntity($target_type, $target_bundles);
+                        $referenced_entity = $this->getTargetEntity($target_type, $target_bundles);
                     }
 
                     if ($referenced_entity) {
-                        self::checkAllFields($subform, $form_state, $referenced_entity);
+                        $this->checkAllFields($subform, $form_state, $referenced_entity, $field_access_check[$field_name]);
                     }
                 }
             }
@@ -428,7 +499,7 @@ class FormField {
      * @throws \InvalidArgumentException
      *   If $form is not an array or $nid is invalid.
      */
-    private static function checkFieldsByFormId(&$form, $form_state, $form_id) {
+    private function checkFieldsByFormId(&$form, $form_state, $form_id) {
         $formIdFieldsrules = HelperboxSettings::getFieldRulesForm();
         if (isset($formIdFieldsrules[$form_id]) && is_array($formIdFieldsrules[$form_id])) {
             foreach ($formIdFieldsrules[$form_id] as $field_name => $check) {
@@ -447,10 +518,10 @@ class FormField {
      * @return array
      *   Cleaned data.
      */
-    private static function filterArrayData(array $data): array {
+    private function filterArrayData(array $data): array {
         return array_filter($data, function ($value) {
             if (is_array($value)) {
-                $clean = self::filterArrayData($value);   // recurse
+                $clean = $this->filterArrayData($value);   // recurse
                 return !empty($clean);                // keep only if something survived
             }
             // Keep everything *except* [] and NULL
@@ -469,7 +540,6 @@ class FormField {
      * @return void
      */
     public static function validateNodeForm(array &$form,  \Drupal\Core\Form\FormStateInterface $form_state) {
-
         // Get current node safely
         $node = self::getCurrentNodeFromFormState($form_state);
         if (!$node) {

@@ -50,7 +50,7 @@ trait RenderBlockTrait {
             '#type'          => 'textfield',
             '#title'         => $this->t('Block Plugin ID'),
             '#default_value' => $this->options['block_plugin_id'],
-            '#description'   => $this->t('Example: system_breadcrumb_block or social_sharing_block'),
+            '#description'   => $this->t('Example: system_breadcrumb_block or system_branding_block or creative_sitebranding or social_sharing_block'),
             '#states'        => [
                 'visible' => [
                     ':input[name="options[block_type]"]' => ['value' => 'plugin_block'],
@@ -93,6 +93,15 @@ trait RenderBlockTrait {
      */
     protected function buildBlockRenderArray(array $view_args = []): array|string {
 
+        $request = \Drupal::request();
+        $is_reset = $request->query->get('op') === 'Reset' || $request->request->get('op') === 'Reset';
+        if ($is_reset) {
+            $clean_url = $request->getPathInfo(); // e.g. /resources/category/journals
+            $response  = new \Symfony\Component\HttpFoundation\RedirectResponse($clean_url);
+            $response->send();
+            exit();
+        }
+
         $block_type = $this->options['block_type'] ?? '';
         if (empty($block_type)) {
             return '';
@@ -101,7 +110,6 @@ trait RenderBlockTrait {
         $rendered_block  = NULL;
         $adminlinks      = [];
         $attached        = [];
-        $additionalClass = '';
         $dataView        = '';
         $view_id         = '';
         $display_id      = '';
@@ -121,7 +129,6 @@ trait RenderBlockTrait {
 
             if ($block_plugin_id !== '') {
                 $rendered_block  = GetBlock::render_block($block_plugin_id);
-                $additionalClass = 'innerblock-' . $block_plugin_id;
                 $dataView        = 'block-' . $block_plugin_id;
                 $cache_tags[]    = 'config:block.block.' . $block_plugin_id;
             }
@@ -136,8 +143,7 @@ trait RenderBlockTrait {
 
             if ($view_id !== '' && $display_id !== '') {
                 $rendered_block  = GetBlock::get_rendered_views_block($view_id, $display_id, $view_args);
-                $additionalClass = 'innerblock-' . str_replace('_', '-', $view_id) . '-' . str_replace('_', '-', $display_id);
-                $dataView        = $view_id . '-' . $display_id;
+                $dataView        = str_replace('_', '-', $view_id) . '-' . str_replace('_', '-', $display_id);
                 $cache_tags[]    = 'config:views.view.' . $view_id;
 
                 $current_user = \Drupal::currentUser();
@@ -194,9 +200,11 @@ trait RenderBlockTrait {
             '#block_plugin_id' => $block_plugin_id,
             '#adminlinks'      => $adminlinks,
             '#attributes'      => [
+                'id'        => 'block-'.$dataView,
                 'class'     => array_filter([
                     'field-render-content',
-                    $additionalClass,
+                    'innerblock-wrapper',
+                    $dataView,
                     $editaccess ? 'edit-field-helperbox-renderblock contextual-region' : '',
                 ]),
                 'data-view' => $dataView,

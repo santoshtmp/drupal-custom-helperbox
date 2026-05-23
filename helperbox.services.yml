@@ -5,6 +5,6 @@ services:
       - { name: event_subscriber }
   helperbox.login_block_subscriber:
     class: Drupal\helperbox\EventSubscriber\LoginBlockSubscriber
-    arguments: ['@path_alias.manager']
+    arguments: ['@path_alias.manager', '@current_user']
     tags:
       - { name: event_subscriber }

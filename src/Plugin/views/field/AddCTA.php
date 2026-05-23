@@ -10,13 +10,14 @@ use Drupal\views\ResultRow;
 use Drupal\views\Attribute\ViewsField;
 use Drupal\node\Entity\Node;
 use Drupal\Component\Utility\Crypt;
+use Drupal\helperbox\Trait\FieldCTATrait;
 
 /**
  * Provides a custom Views field for rendering Call-To-Action (CTA) buttons.
  *
  * This field plugin allows site builders to add configurable CTA buttons to
- * Views. It supports both internal and external links, matching the functionality
- * of Drupal core's Link field type.
+ * Views. It supports both internal and external links, matching the
+ * functionality of Drupal core's Link field type.
  *
  * Features:
  * - Internal paths (e.g., /about, /node/1, ?query=1, #fragment)
@@ -39,15 +40,15 @@ use Drupal\Component\Utility\Crypt;
 #[ViewsField("helperbox_add_cta")]
 class AddCTA extends FieldPluginBase {
 
+  use FieldCTATrait;
+
   /**
    * {@inheritdoc}
    *
-   * This method is intentionally empty because the CTA field does not require
-   * any additional database columns. All data is stored in the view's
-   * configuration.
+   * Intentionally empty: the CTA field stores all data in view configuration
+   * and requires no additional database columns.
    */
   public function query() {
-    // No query alteration needed.
   }
 
   /**
@@ -66,17 +67,15 @@ class AddCTA extends FieldPluginBase {
   public function defineOptions() {
     $options = parent::defineOptions();
 
-    $options['cta_type'] = ['default' => 'primary'];
-    $options['use_link_field'] = ['default' => FALSE];
-    $options['link_field'] = ['default' => ''];
-    $options['cta_label'] = [
-      'default' => '',
-      'translatable' => TRUE,
-    ];
-    $options['cta_url'] = ['default' => ''];
-    $options['cta_target'] = ['default' => ''];
+    $options['cta_type']                     = ['default' => 'primary'];
+    $options['use_link_field']               = ['default' => FALSE];
+    $options['link_field']                   = ['default' => ''];
+    $options['cta_label']                    = ['default' => '', 'translatable' => TRUE];
+    $options['cta_url']                      = ['default' => ''];
+    $options['cta_target']                   = ['default' => ''];
     $options['cta_enable_extra_query_params'] = ['default' => FALSE];
-    $options['cta_query_params'] = ['default' => ''];
+    $options['cta_query_params']             = ['default' => ''];
+
     return $options;
   }
 
@@ -107,75 +106,63 @@ class AddCTA extends FieldPluginBase {
 
     // Create a fieldset to group all CTA settings.
     $form['cta_settings'] = [
-      '#type' => 'details',
-      '#title' => $this->t('CTA Settings'),
-      '#open' => TRUE,
+      '#type'   => 'details',
+      '#title'  => $this->t('CTA Settings'),
+      '#open'   => TRUE,
       '#weight' => 0,
     ];
 
     // CTA Type selection (primary or secondary button style).
     $form['cta_type'] = [
-      '#type' => 'select',
-      '#title' => $this->t('CTA Type'),
+      '#type'          => 'select',
+      '#title'         => $this->t('CTA Type'),
       '#default_value' => $this->options['cta_type'],
-      '#options' => [
-        'primary' => $this->t('Primary Button'),
-        'secondary' => $this->t('Secondary Button'),
-      ],
-      '#description' => $this->t('Select the button style.'),
-      '#fieldset' => 'cta_settings',
+      '#options'       => $this->ctaTypeOptions(),
+      '#description'   => $this->t('Select the button style.'),
+      '#fieldset'      => 'cta_settings',
     ];
 
     // Option to use entity's link field.
     $form['use_link_field'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Use existing link field'),
+      '#type'          => 'checkbox',
+      '#title'         => $this->t('Use existing link field'),
       '#default_value' => $this->options['use_link_field'],
-      '#description' => $this->t('Check this to use a link field value from the current entity.'),
-      '#fieldset' => 'cta_settings',
+      '#description'   => $this->t('Check this to use a link field value from the current entity.'),
+      '#fieldset'      => 'cta_settings',
     ];
 
     // Link field selector (shown when use_link_field is enabled).
     $bundle_info = $this->getViewBundleInfo();
     $form['link_field'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('Link field'),
+      '#type'          => 'textfield',
+      '#title'         => $this->t('Link field'),
       '#default_value' => $this->options['link_field'],
-      '#description' => $this->t('Enter the link field name from the current entity to use for the CTA URL (e.g., field_cta_link). <br>This will only take first link value.<br>') . ($bundle_info ? ' <br>' . $bundle_info : ''),
-      '#fieldset' => 'cta_settings',
-      '#states' => [
-        'visible' => [
-          ':input[name="options[use_link_field]"]' => ['checked' => TRUE],
-        ],
-        'required' => [
-          ':input[name="options[use_link_field]"]' => ['checked' => TRUE],
-        ],
+      '#description'   => $this->t(
+        'Enter the link field name from the current entity (e.g., field_cta_link). Only the first value is used.@bundle_info',
+        ['@bundle_info' => $bundle_info ? ' ' . $bundle_info : '']
+      ),
+      '#fieldset'      => 'cta_settings',
+      '#states'        => [
+        'visible'  => [':input[name="options[use_link_field]"]' => ['checked' => TRUE]],
+        'required' => [':input[name="options[use_link_field]"]' => ['checked' => TRUE]],
       ],
     ];
 
     // CTA Label text input.
     $form['cta_label'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('CTA Label'),
+      '#type'          => 'textfield',
+      '#title'         => $this->t('CTA Label'),
       '#default_value' => $this->options['cta_label'],
-      '#description' => $this->t('Text to display on the CTA button.'),
-      '#fieldset' => 'cta_settings',
-      '#states' => [
-        'visible' => [
-          ':input[name="options[use_link_field]"]' => ['checked' => FALSE],
-        ],
-        'required' => [
-          ':input[name="options[use_link_field]"]' => ['checked' => FALSE],
-        ],
-      ]
+      '#description'   => $this->t('Text to display on the CTA button.'),
+      '#fieldset'      => 'cta_settings',
+      '#states'        => [
+        'visible'  => [':input[name="options[use_link_field]"]' => ['checked' => FALSE]],
+        'required' => [':input[name="options[use_link_field]"]' => ['checked' => FALSE]],
+      ],
     ];
 
-    // Convert stored URI to user-friendly display value.
-    // This matches the behavior of Drupal core's LinkWidget.
-    $default_input = $this->getDisplayUriFromValue($this->options['cta_url'] ?? '');
-
-    // Generate a secure key for entity autocomplete settings.
-    // This follows the same pattern as core's EntityAutocompleteElement.
+    // Build the autocomplete key exactly as core's EntityAutocompleteElement
+    // does, so the autocomplete controller can verify it.
     $selection_settings = [];
     $selection_settings_key = Crypt::hmacBase64(
       serialize($selection_settings) . 'node' . 'default:node',
@@ -186,84 +173,83 @@ class AddCTA extends FieldPluginBase {
     // The autocomplete controller retrieves settings using this key.
     \Drupal::keyValue('entity_autocomplete')->set($selection_settings_key, $selection_settings);
 
-    // CTA URL input with entity autocomplete support.
     $form['cta_url'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('CTA Link'),
-      '#description' => $this->t('Start typing to search content (autocomplete for nodes). Or enter: internal path (%add-node, /about), external URL (%url), or special: %front (homepage), %nolink (text only), %button (styled text only), %current_node (current entity URL).', [
-        '%front' => '<front>',
-        '%add-node' => '/node/add',
-        '%url' => 'https://example.com',
-        '%nolink' => '<nolink>',
-        '%button' => '<button>',
-        '%current_node' => '<current_node>',
-      ]),
-      '#default_value' => $default_input,
+      '#type'          => 'textfield',
+      '#title'         => $this->t('CTA Link'),
+      '#description'   => $this->t(
+        'Start typing to search content (autocomplete). Or enter: internal path (%path), external URL (%url), or special: %front (homepage), %nolink (text only), %button (styled text), %current_node (current entity URL).',
+        [
+          '%path'         => '/node/add',
+          '%url'          => 'https://example.com',
+          '%front'        => '<front>',
+          '%nolink'       => '<nolink>',
+          '%button'       => '<button>',
+          '%current_node' => '<current_node>',
+        ]
+      ),
+      '#default_value'  => $this->getDisplayUriFromValue($this->options['cta_url'] ?? ''),
       '#element_validate' => [[static::class, 'validateCtaUrl']],
-      '#autocomplete_route_name' => 'system.entity_autocomplete',
+      '#autocomplete_route_name'       => 'system.entity_autocomplete',
       '#autocomplete_route_parameters' => [
-        'target_type' => 'node',
-        'selection_handler' => 'default:node',
+        'target_type'           => 'node',
+        'selection_handler'     => 'default:node',
         'selection_settings_key' => $selection_settings_key,
       ],
       '#attributes' => [
-        // Disable autocomplete when input starts with /, #, or ? to allow
-        // manual path entry.
+        // Disable autocomplete when the entry starts with /, #, or ? so that
+        // manual path entry is not interrupted by node suggestions.
         'data-autocomplete-first-character-denylist' => '/#?',
       ],
       '#fieldset' => 'cta_settings',
-      '#states' => [
-        'visible' => [
-          ':input[name="options[use_link_field]"]' => ['checked' => FALSE],
-        ],
-        'required' => [
-          ':input[name="options[use_link_field]"]' => ['checked' => FALSE],
-        ],
-      ]
+      '#states'   => [
+        'visible'  => [':input[name="options[use_link_field]"]' => ['checked' => FALSE]],
+        'required' => [':input[name="options[use_link_field]"]' => ['checked' => FALSE]],
+      ],
     ];
 
     // CTA Link Target selection.
     $form['cta_target'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Link Target'),
+      '#type'          => 'select',
+      '#title'         => $this->t('Link Target'),
       '#default_value' => $this->options['cta_target'],
-      '#options' => [
-        '' => $this->t('- None -'),
-        '_self' => $this->t('Same window/tab (_self)'),
-        '_blank' => $this->t('New window/tab (_blank)'),
+      '#options'       => [
+        ''        => $this->t('- None -'),
+        '_self'   => $this->t('Same window/tab (_self)'),
+        '_blank'  => $this->t('New window/tab (_blank)'),
         '_parent' => $this->t('Parent frame (_parent)'),
-        '_top' => $this->t('Full body window (_top)'),
+        '_top'    => $this->t('Full body window (_top)'),
       ],
       '#description' => $this->t('Select where to open the link.'),
-      '#fieldset' => 'cta_settings',
+      '#fieldset'    => 'cta_settings',
     ];
 
     // Enable Extra Query Parameters checkbox.
     $form['cta_enable_extra_query_params'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Enable Extra Query Parameters'),
+      '#type'          => 'checkbox',
+      '#title'         => $this->t('Enable Extra Query Parameters'),
       '#default_value' => $this->options['cta_enable_extra_query_params'],
-      '#description' => $this->t('Check this to enable additional query parameters for the CTA link.'),
-      '#fieldset' => 'cta_settings',
+      '#description'   => $this->t('Check this to append additional query parameters to the CTA link.'),
+      '#fieldset'      => 'cta_settings',
     ];
 
     // Query params textarea (key=value pairs, one per line).
     $form['cta_query_params'] = [
-      '#type' => 'textarea',
-      '#title' => $this->t('Query Parameters'),
+      '#type'          => 'textarea',
+      '#title'         => $this->t('Query Parameters'),
       '#default_value' => $this->options['cta_query_params'],
-      '#description' => $this->t('Enter query parameters, one per line in the format: key=value. For example:<br>filter=active<br>sort=date<br>limit=10<br><br>Available placeholders for dynamic values:<br>{id} - Entity ID<br>{bundle} - Entity bundle/type<br>{entity_type} - Entity type<br>{title} - Entity title'),
-      '#fieldset' => 'cta_settings',
-      '#rows' => 5,
+      '#description'   => $this->t(
+        'Enter query parameters one per line as key=value pairs. Available placeholders: {id}, {bundle}, {entity_type}, {title}, {url}.'
+      ),
+      '#fieldset'  => 'cta_settings',
+      '#rows'      => 5,
       '#attributes' => [
-        'autocomplete' => 'off',
-        'autocorrect' => 'off',
+        'autocomplete'   => 'off',
+        'autocorrect'    => 'off',
         'autocapitalize' => 'off',
-        'spellcheck' => 'false',
+        'spellcheck'     => 'false',
       ],
       '#states' => [
         'visible' => [
-          // ':input[name="options[use_link_field]"]' => ['checked' => FALSE],
           ':input[name="options[cta_enable_extra_query_params]"]' => ['checked' => TRUE],
         ],
       ],
@@ -271,10 +257,10 @@ class AddCTA extends FieldPluginBase {
   }
 
   /**
-   * Gets bundle information for the current view.
+   * Returns a human-readable summary of the bundles covered by this view.
    *
    * @return string
-   *   A formatted string with bundle information, or empty string.
+   *   Formatted bundle information, or an empty string when unavailable.
    */
   protected function getViewBundleInfo() {
     // Get entity type.
@@ -283,25 +269,26 @@ class AddCTA extends FieldPluginBase {
       return '';
     }
 
-    $entity_type_id = $entity_type->id();
+    $entity_type_id    = $entity_type->id();
     $entity_type_label = $entity_type->getLabel();
 
-    // Get the bundle filter handler.
+    // Resolve which bundles are active for this view.
     $bundle_filter = $this->view->display_handler->getHandler('filter', 'type');
     $bundles = [];
+    $filtered       = $bundle_filter && !empty($bundle_filter->value);
+
+    $bundle_storage_map = [
+      'node' => 'node_type',
+      'block_content' => 'block_content_type',
+      'taxonomy_term' => 'vocabulary',
+      'media' => 'media_type',
+    ];
 
     // If filter exists and has values, use filtered bundles.
     if ($bundle_filter && !empty($bundle_filter->value)) {
       $bundles = is_array($bundle_filter->value) ? $bundle_filter->value : [$bundle_filter->value];
     } else {
       // No filter: Get all available bundles for this entity type.
-      $bundle_storage_map = [
-        'node' => 'node_type',
-        'block_content' => 'block_content_type',
-        'taxonomy_term' => 'vocabulary',
-        'media' => 'media_type',
-      ];
-
       if (isset($bundle_storage_map[$entity_type_id])) {
         $bundle_entities = \Drupal::entityTypeManager()
           ->getStorage($bundle_storage_map[$entity_type_id])
@@ -314,14 +301,6 @@ class AddCTA extends FieldPluginBase {
       return '';
     }
 
-    // Load bundle labels.
-    $bundle_storage_map = [
-      'node' => 'node_type',
-      'block_content' => 'block_content_type',
-      'taxonomy_term' => 'vocabulary',
-      'media' => 'media_type',
-    ];
-
     if (isset($bundle_storage_map[$entity_type_id])) {
       $bundle_entities = \Drupal::entityTypeManager()
         ->getStorage($bundle_storage_map[$entity_type_id])
@@ -330,121 +309,74 @@ class AddCTA extends FieldPluginBase {
     } else {
       $bundle_labels = $bundles;
     }
-
     if (empty($bundle_labels)) {
       return '';
     }
 
-    // Indicate if all bundles are included.
-    $prefix = $bundle_filter && !empty($bundle_filter->value) ? '' : '(All) ';
-
-    return $this->t('@prefix@entity_type bundle: @bundles', [
-      '@prefix' => $prefix,
+    return (string) $this->t('@prefix@entity_type bundle: @bundles', [
+      '@prefix'      => $filtered ? '' : '(All) ',
       '@entity_type' => $entity_type_label,
-      '@bundles' => implode(', ', $bundle_labels),
+      '@bundles'     => implode(', ', $bundle_labels),
     ]);
   }
 
-  /**
-   * Builds the textarea value from query params array.
-   *
-   * @param array $query_params
-   *   The query parameters array.
-   *
-   * @return string
-   *   The textarea value with key=value pairs, one per line.
-   */
-  protected function buildQueryParamsTextarea(array $query_params) {
-    if (empty($query_params)) {
-      return '';
-    }
-
-    $lines = [];
-    foreach ($query_params as $param) {
-      if (is_array($param) && isset($param['key']) && isset($param['value'])) {
-        $lines[] = $param['key'] . '=' . $param['value'];
-      }
-    }
-
-    return implode("\n", $lines);
-  }
 
   /**
-   * Validates and normalizes the CTA URL input to a proper URI format.
-   *
-   * This validation callback is triggered when the form is submitted. It
-   * converts the user-entered string into a standardized URI format that
-   * can be stored and later processed.
-   *
-   * Validation rules:
-   * - Entity autocomplete selections are converted to entity:node/NID
-   * - Special values (<nolink>, <button>) are converted to route: scheme
-   * - Internal paths are prefixed with internal: scheme
-   * - External URLs are kept as-is
-   * - Internal paths must start with /, ?, #, or be a special value
+   * Validates and normalises the CTA URL element value to a proper URI.
    *
    * @param array $element
    *   The form element being validated.
    * @param \Drupal\Core\Form\FormStateInterface $form_state
-   *   The current state of the form.
+   *   The current form state.
    * @param array $form
    *   The complete form structure.
    *
    * @see \Drupal\Core\Entity\Element\EntityAutocomplete::validateEntityAutocomplete()
    * @see \Drupal\Core\Field\Plugin\Field\FieldWidget\LinkWidget::validateUriElement()
    */
-  public static function validateCtaUrl(&$element, FormStateInterface $form_state, $form) {
-    // Convert user input to standardized URI format.
-    $uri = static::getUserEnteredStringAsUri($element['#value']);
+  public static function validateCtaUrl(array &$element, FormStateInterface $form_state, array $form): void {
+    $input = $element['#value'];
+    $uri   = static::getUserEnteredStringAsUri($input);
     $form_state->setValueForElement($element, $uri);
 
-    // Validate that entity autocomplete selections are valid.
-    // If the input contains parentheses (e.g., "Home (1)"), ensure we can
-    // extract a valid entity ID.
+    // Validate autocomplete selections (e.g. "Home (1)").
+    // if (str_contains($input, '(') && str_contains($input, ')')) {
     if (strpos($element['#value'], '(') !== FALSE && strpos($element['#value'], ')') !== FALSE) {
-      $extracted_id = EntityAutocomplete::extractEntityIdFromAutocompleteInput($element['#value']);
-      if ($extracted_id === NULL) {
-        $form_state->setError($element, t('Invalid selection. Select from suggestions or enter a valid path/URL.'));
+      if (EntityAutocomplete::extractEntityIdFromAutocompleteInput($input) === NULL) {
+        $form_state->setError($element, t('Invalid selection. Choose from suggestions or enter a valid path/URL.'));
         return;
       }
     }
 
-    // Enforce path-like input for internal URIs.
-    // Internal paths must start with /, ?, or #, or be a special value.
+    // Internal URIs must start with /, ?, or # — or be a recognised special
+    // value. Guard against an empty string before accessing index 0.
     if (
       parse_url($uri, PHP_URL_SCHEME) === 'internal'
-      && !in_array($element['#value'][0] ?? '', ['/', '?', '#'], TRUE)
-      && !str_starts_with($element['#value'], '<front>')
-      && !in_array($element['#value'], ['<nolink>', '<button>', '<current_node>'], TRUE)
+      && !in_array($input[0] ?? '', ['/', '?', '#'], TRUE)
+      && !str_starts_with($input, '<front>')
+      && !in_array($input, ['<nolink>', '<button>', '<current_node>'], TRUE)
     ) {
-      $form_state->setError($element, t('Internal paths must start with /, ?, #, or be a special value like <front>, <nolink>, <button>, <current_node>.'));
+      $form_state->setError($element, t('Internal paths must start with /, ?, #, or be a special value like &lt;front&gt;, &lt;nolink&gt;, &lt;button&gt;, or &lt;current_node&gt;.'));
     }
   }
 
   /**
    * Converts a stored URI to a user-friendly display string.
    *
-   * This method is the inverse of getUserEnteredStringAsUri(). It transforms
-   * internal URI representations back into human-readable strings for display
-   * in the form input field.
-   *
    * Transformations:
-   * - internal:/about → /about
-   * - internal:/ → <front>
-   * - entity:node/1 → "Node Title (1)"
-   * - route:<nolink> → <nolink>
-   * - route:<button> → <button>
-   * - route:<current_node> → <current_node>
-   * - https://example.com → https://example.com (unchanged)
+   * - internal:/about       → /about
+   * - internal:/            → <front>
+   * - entity:node/1         → "Node Title (1)"
+   * - route:<nolink>        → <nolink>
+   * - route:<button>        → <button>
+   * - route:<current_node>  → <current_node>
+   * - https://example.com   → https://example.com (unchanged)
    *
    * @param string $uri
-   *   The URI to convert. May have schemes like internal:, entity:, or route:.
+   *   The stored URI to convert.
    *
    * @return string
-   *   The user-friendly display string. Returns the original URI if no
-   *   transformation is applicable.
-   *
-   * @see \Drupal\Core\Field\Plugin\Field\FieldWidget\LinkWidget::getUriAsDisplayableString()
+   *   The human-readable display string.
    */
   protected function getDisplayUriFromValue(string $uri): string {
     if (empty($uri)) {
@@ -454,87 +386,75 @@ class AddCTA extends FieldPluginBase {
     // Extract the URI scheme to determine the type of link.
     $scheme = parse_url($uri, PHP_URL_SCHEME);
 
-    // By default, return the URI as-is (for external URLs or unknown schemes).
-    $displayable_string = $uri;
-
-    // Handle 'internal:' scheme - strip the scheme for display.
     if ($scheme === 'internal') {
-      $uri_reference = explode(':', $uri, 2)[1];
+      $uri_reference = substr($uri, strlen('internal:'));
 
-      // Special case: front page is displayed as <front>.
-      $path = parse_url($uri, PHP_URL_PATH);
-      if ($path === '/') {
+      // internal:/ represents the front page; show as <front>.
+      if (parse_url($uri, PHP_URL_PATH) === '/') {
         $uri_reference = '<front>' . substr($uri_reference, 1);
       }
 
-      $displayable_string = $uri_reference;
+      return $uri_reference;
     }
-    // Handle 'entity:' scheme - display as "Entity Label (ID)".
-    elseif ($scheme === 'entity') {
-      [$entity_type, $entity_id] = explode('/', substr($uri, 7), 2);
-      if ($entity_type == 'node' && $node = Node::load($entity_id)) {
-        $displayable_string = $node->label() . ' (' . $entity_id . ')';
+
+    if ($scheme === 'entity') {
+      // Format: entity:node/NID
+      [$entity_type, $entity_id] = explode('/', substr($uri, strlen('entity:')), 2);
+      if ($entity_type === 'node' && $node = Node::load($entity_id)) {
+        return $node->label() . ' (' . $entity_id . ')';
       }
     }
-    // Handle 'route:' scheme - strip the scheme for display.
-    elseif ($scheme === 'route') {
-      $displayable_string = ltrim($uri, 'route:');
-    }
 
-    return $displayable_string;
-  }
-
-  /**
-   * Converts a user-entered string to a standardized URI format.
-   *
-   * This method is the inverse of getDisplayUriFromValue(). It transforms
-   * user input from the form into a standardized URI format that can be
-   * stored in the configuration.
-   *
-   * Transformations:
-   * - "Node Title (1)" → entity:node/1
-   * - "/about" → internal:/about
-   * - "<front>" → internal:/
-   * - "<nolink>" → route:<nolink>
-   * - "<button>" → route:<button>
-   * - "<current_node>" → route:<current_node>
-   * - "https://example.com" → https://example.com (unchanged)
-   *
-   * @param string $string
-   *   The user-entered string from the form input.
-   *
-   * @return string
-   *   The standardized URI with appropriate scheme.
-   *
-   * @see \Drupal\Core\Field\Plugin\Field\FieldWidget\LinkWidget::getUserEnteredStringAsUri()
-   * @see \Drupal\Core\Entity\Element\EntityAutocomplete::extractEntityIdFromAutocompleteInput()
-   */
-  protected static function getUserEnteredStringAsUri($string) {
-    // By default, assume the entered string is already a URI.
-    $uri = trim($string);
-
-    // Check if the input is an entity autocomplete string (e.g., "Home (1)").
-    // If so, extract the entity ID and create an entity: URI.
-    $entity_id = EntityAutocomplete::extractEntityIdFromAutocompleteInput($string);
-    if ($entity_id !== NULL) {
-      $uri = 'entity:node/' . $entity_id;
-    }
-    // Handle special route values: <nolink>, <none>, <button>, <current_node>.
-    // These are stored with the route: scheme.
-    elseif (in_array($string, ['<nolink>', '<none>', '<button>', '<current_node>'], TRUE)) {
-      $uri = 'route:' . $string;
-    }
-    // Handle schemeless strings (internal paths).
-    // These are stored with the internal: scheme.
-    elseif (!empty($string) && parse_url($string, PHP_URL_SCHEME) === NULL) {
-      // Special case: <front> is converted to internal:/.
-      if (str_starts_with($string, '<front>')) {
-        $string = '/' . substr($string, strlen('<front>'));
-      }
-      $uri = 'internal:' . $string;
+    if ($scheme === 'route') {
+      // Strip the "route:" prefix — correct prefix removal (not ltrim).
+      return substr($uri, strlen('route:'));
     }
 
     return $uri;
+  }
+
+  /**
+   * Converts a user-entered string to a standardised URI for storage.
+   *
+   * Transformations:
+   * - "Node Title (1)"     → entity:node/1
+   * - "/about"             → internal:/about
+   * - "<front>"            → internal:/
+   * - "<nolink>"           → route:<nolink>
+   * - "<button>"           → route:<button>
+   * - "<current_node>"     → route:<current_node>
+   * - "https://example.com"→ https://example.com (unchanged)
+   *
+   * @param string $string
+   *   The raw user input.
+   *
+   * @return string
+   *   The normalised URI.
+   */
+  protected static function getUserEnteredStringAsUri(string $string): string {
+    $string = trim($string);
+
+    // Entity autocomplete result e.g. "Home (1)".
+    $entity_id = EntityAutocomplete::extractEntityIdFromAutocompleteInput($string);
+    if ($entity_id !== NULL) {
+      return 'entity:node/' . $entity_id;
+    }
+
+    // Recognised special route values.
+    if (in_array($string, ['<nolink>', '<none>', '<button>', '<current_node>'], TRUE)) {
+      return 'route:' . $string;
+    }
+
+    // Schemeless string → internal: URI.
+    if (!empty($string) && parse_url($string, PHP_URL_SCHEME) === NULL) {
+      if (str_starts_with($string, '<front>')) {
+        // Replace <front> with the root slash.
+        $string = '/' . substr($string, strlen('<front>'));
+      }
+      return 'internal:' . $string;
+    }
+
+    return $string;
   }
 
   /**
@@ -560,78 +480,66 @@ class AddCTA extends FieldPluginBase {
    */
   public function render(ResultRow $values) {
     // Extract configuration options.
-    $cta_type = $this->options['cta_type'] ?? 'primary';
-    $cta_label = trim($this->options['cta_label'] ?? '');
-    $cta_url = $this->options['cta_url'] ?? '';
-    $cta_target = $this->options['cta_target'] ?? '';
-    $use_link_field = $this->options['use_link_field'] ?? FALSE;
-    $link_field = $this->options['link_field'] ?? '';
+    $cta_type                  = $this->options['cta_type'] ?? 'primary';
+    $cta_label                 = trim($this->options['cta_label'] ?? '');
+    $cta_url                   = $this->options['cta_url'] ?? '';
+    $cta_target                = $this->options['cta_target'] ?? '';
+    $use_link_field            = $this->options['use_link_field'] ?? FALSE;
+    $link_field                = $this->options['link_field'] ?? '';
     $enable_extra_query_params = $this->options['cta_enable_extra_query_params'] ?? FALSE;
-    $cta_query_params = $this->options['cta_query_params'] ?? '';
+    $cta_query_params          = $this->options['cta_query_params'] ?? '';
 
     // Get the entity.
     $entity = $this->getEntity($values);
 
-    // If using entity's link field, get the URL from the field.
-    if ($use_link_field && !empty($link_field)) {
-      if ($entity && $entity instanceof \Drupal\Core\Entity\FieldableEntityInterface && $entity->hasField($link_field)) {
-        $field_item = $entity->get($link_field)->first();
-        if (!$field_item->isEmpty()) {
-          $cta_url = $field_item->getValue()['uri'] ?? '';
-          $cta_label = $field_item->getValue()['title'] ?? '';
-        }
+    // Pull URL and label from the configured link field when requested.
+    if ($use_link_field && !empty($link_field) && $entity instanceof \Drupal\Core\Entity\FieldableEntityInterface && $entity->hasField($link_field)) {
+      $field_item = $entity->get($link_field)->first();
+      if ($field_item && !$field_item->isEmpty()) {
+        $field_value = $field_item->getValue();
+        $cta_url     = $field_value['uri']   ?? '';
+        $cta_label   = $field_value['title'] ?? '';
       }
     }
 
-    // Determine URL type and link status.
-    $url_type = $this->getUrlType($cta_url);
-    $is_no_link = in_array($url_type, ['nolink', 'button', 'none'], TRUE);
-    $is_external = $url_type === 'external';
-    $is_front = $url_type === 'front';
-    $is_current_node = $url_type === 'current_node';
+    // Fall back to the entity label when the label is still empty.
+    if (empty($cta_label) && $entity) {
+      $cta_label = $entity->label() ?? '';
+    }
 
-    // Handle special cases: <nolink> and <button> display text only.
-    // These are used when you want button styling without a link.
+    $url_type  = $this->getUrlType($cta_url);
+    $is_no_link  = in_array($url_type, ['nolink', 'button', 'none'], TRUE);
+    $is_external = $url_type === 'external';
+
+    // <nolink> / <button> — render text without a hyperlink.
     if ($is_no_link) {
       return [
-        '#theme' => 'helperbox_add_cta',
-        '#cta_url' => '',
-        '#cta_label' => (string) $cta_label,
-        '#cta_type' => $cta_type,
-        '#cta_target' => '',
-        '#attributes' => [],
-        '#url_type' => $url_type,
+        '#theme'       => 'helperbox_add_cta',
+        '#cta_url'     => '',
+        '#cta_label'   => (string) $cta_label,
+        '#cta_type'    => $cta_type,
+        '#cta_target'  => '',
+        '#attributes'  => [],
+        '#url_type'    => $url_type,
         '#is_external' => FALSE,
-        '#is_no_link' => TRUE,
+        '#is_no_link'  => TRUE,
       ];
     }
 
-    // Handle <current_node>: get URL from the current entity.
-    if ($is_current_node && $entity) {
+    // Resolve the final URL string.
+    if ($url_type === 'current_node' && $entity) {
       $url_string = $entity->toUrl()->toString();
-      // Optionally use entity title as label if not configured.
-      if (empty($cta_label)) {
-        $cta_label = $entity->label();
-      }
-    }
-    else {
-      // Attempt to create a Url object from the URI.
-      $cta_url_object = $this->getUrl($cta_url);
-      if (!$cta_url_object) {
+    } elseif ($url_type === 'front') {
+      $url_string = Url::fromRoute('<front>')->toString();
+    } else {
+      $url_object = $this->getUrl($cta_url);
+      if (!$url_object) {
         return [];
       }
-
-      // Get the string URL for the template.
-      $url_string = $cta_url_object->toString();
-
-      // For front page, ensure we have the correct URL.
-      if ($is_front) {
-        $url_string = Url::fromRoute('<front>')->toString();
-      }
+      $url_string = $url_object->toString();
     }
 
-
-    // Process extra query parameters if enabled.
+    // Append any configured extra query parameters.
     if ($enable_extra_query_params && !empty($cta_query_params) && $entity) {
       $query_params = $this->parseQueryParams($cta_query_params, $entity);
       if (!empty($query_params)) {
@@ -639,51 +547,50 @@ class AddCTA extends FieldPluginBase {
       }
     }
 
-    // Build attributes array.
-    $attributes = [];
-
     return [
-      '#theme' => 'helperbox_add_cta',
-      '#cta_url' => $url_string,
-      '#cta_label' => (string) $cta_label,
-      '#cta_type' => $cta_type,
-      '#cta_target' => $cta_target,
-      '#attributes' => $attributes,
-      '#url_type' => $url_type,
+      '#theme'       => 'helperbox_add_cta',
+      '#cta_url'     => $url_string,
+      '#cta_label'   => (string) $cta_label,
+      '#cta_type'    => $cta_type,
+      '#cta_target'  => $cta_target,
+      '#attributes'  => [],
+      '#url_type'    => $url_type,
       '#is_external' => $is_external,
-      '#is_no_link' => FALSE,
+      '#is_no_link'  => FALSE,
     ];
   }
 
   /**
-   * Parses query parameters from textarea input.
+   * Parses a textarea of key=value pairs into a query-parameters array.
+   *
+   * Supports the following placeholders in values:
+   * - {id}          — entity ID
+   * - {bundle}      — entity bundle
+   * - {entity_type} — entity type ID
+   * - {title}       — entity label
+   * - {url}         — entity canonical URL
    *
    * @param string $params_text
-   *   The textarea value with key=value pairs, one per line.
+   *   Raw textarea content with one key=value pair per line.
    * @param \Drupal\Core\Entity\EntityInterface $entity
-   *   The entity object for placeholder replacement.
+   *   The entity used for placeholder replacement.
    *
-   * @return array
-   *   An associative array of query parameters.
+   * @return array<string, string>
+   *   Associative array of query parameters.
    */
-  protected function parseQueryParams($params_text, $entity) {
+  protected function parseQueryParams(string $params_text, \Drupal\Core\Entity\EntityInterface $entity): array {
     $query_params = [];
-    $lines = explode("\n", trim($params_text));
 
-    foreach ($lines as $line) {
+    foreach (explode("\n", trim($params_text)) as $line) {
       $line = trim($line);
-      if (empty($line) || strpos($line, '=') === FALSE) {
+      if ($line === '' || !str_contains($line, '=')) {
         continue;
       }
 
-      list($key, $value) = explode('=', $line, 2);
+      [$key, $value] = explode('=', $line, 2);
       $key = trim($key);
-      $value = trim($value);
-
-      if (!empty($key)) {
-        // Replace placeholders in the value.
-        $value = $this->replacePlaceholders($value, $entity);
-        $query_params[$key] = $value;
+      if ($key !== '') {
+        $query_params[$key] = $this->replacePlaceholders(trim($value), $entity);
       }
     }
 
@@ -691,40 +598,45 @@ class AddCTA extends FieldPluginBase {
   }
 
   /**
-   * Replaces placeholders in a string with entity values.
+   * Replaces entity-aware placeholders in a string.
+   *
+   * Supported placeholders: {id}, {entity_type}, {bundle}, {title}, {url}.
    *
    * @param string $value
    *   The string containing placeholders.
    * @param \Drupal\Core\Entity\EntityInterface $entity
-   *   The entity object.
+   *   The source entity.
    *
    * @return string
-   *   The string with placeholders replaced.
+   *   The string with all placeholders replaced.
    */
-  protected function replacePlaceholders($value, $entity) {
+  protected function replacePlaceholders(string $value, \Drupal\Core\Entity\EntityInterface $entity): string {
     $replacements = [
-      '{id}' => $entity->id(),
+      '{id}'          => $entity->id(),
       '{entity_type}' => $entity->getEntityTypeId(),
-      '{bundle}' => $entity->bundle(),
-      '{title}' => $entity->label(),
-      '{url}' => $entity->toUrl()->toString(),
+      '{bundle}'      => $entity->bundle(),
+      '{title}'       => $entity->label(),
+      '{url}'         => $entity->toUrl()->toString(),
     ];
 
     return str_replace(array_keys($replacements), array_values($replacements), $value);
   }
 
   /**
-   * Appends query parameters to a URL.
+   * Appends query parameters to a URL string.
+   *
+   * Existing query parameters in the URL are preserved; supplied parameters
+   * take precedence on key collision. Fragment identifiers are preserved.
    *
    * @param string $url
-   *   The original URL.
-   * @param array $query_params
-   *   An associative array of query parameters.
+   *   The original URL (absolute or root-relative).
+   * @param array<string, string> $query_params
+   *   Parameters to append.
    *
    * @return string
-   *   The URL with query parameters appended.
+   *   The URL with parameters appended.
    */
-  protected function appendQueryParams($url, array $query_params) {
+  protected function appendQueryParams(string $url, array $query_params) {
     if (empty($query_params)) {
       return $url;
     }
@@ -736,58 +648,42 @@ class AddCTA extends FieldPluginBase {
       return $url . (strpos($url, '?') !== FALSE ? '&' : '?') . $query_string;
     }
 
-    // Parse the URL to separate existing query string.
-    $parsed = parse_url($url);
-    
-    // Handle relative paths (e.g., /node/1, /about).
-    if (!isset($parsed['host'])) {
-      $path = $parsed['path'] ?? $url;
-      $fragment = isset($parsed['fragment']) ? '#' . $parsed['fragment'] : '';
-      
+    $parsed   = parse_url($url);
+
+    $scheme = $parsed['scheme'] ?? '';
+    $host = $parsed['host'] ?? '';
+    $path = $parsed['path'] ?? '/';
+    $fragment = isset($parsed['fragment']) ? '#' . $parsed['fragment'] : '';
+
+    // Merge with any pre-existing query string.
+    $existing = [];
+    if (!empty($parsed['query'])) {
+      parse_str($parsed['query'], $existing);
+    }
+    $query_params       = array_merge($existing, $query_params);
+    $query_string = http_build_query($query_params);
+
+    // Reconstruct root-relative paths (no host component).
+    if (empty($parsed['host'])) {
       // Remove fragment from path for query string processing.
       if ($fragment) {
         $path = str_replace($fragment, '', $path);
       }
-      
-      // Merge with existing query parameters.
-      $existing_params = [];
-      if (isset($parsed['query'])) {
-        parse_str($parsed['query'], $existing_params);
-      }
-      $query_params = array_merge($existing_params, $query_params);
-      
-      // Build the query string.
-      $query_string = http_build_query($query_params);
       return $path . '?' . $query_string . $fragment;
     }
 
     // Handle absolute URLs (http/https).
-    $scheme = $parsed['scheme'] ?? '';
-    $host = $parsed['host'] ?? '';
-    $path = $parsed['path'] ?? '';
-    $fragment = isset($parsed['fragment']) ? '#' . $parsed['fragment'] : '';
     $base_url = $scheme . '://' . $host . $path;
 
-    // Merge with existing query parameters.
-    $existing_params = [];
-    if (isset($parsed['query'])) {
-      parse_str($parsed['query'], $existing_params);
-    }
-    $query_params = array_merge($existing_params, $query_params);
-
     // Build the query string.
-    $query_string = http_build_query($query_params);
     return $base_url . '?' . $query_string . $fragment;
   }
 
   /**
-   * Determines the type of URL from the stored URI string.
-   *
-   * This method analyzes the URI and returns a string indicating the type
-   * of link, which can be used by the template for appropriate rendering.
+   * Determines the semantic type of a stored URI string.
    *
    * @param string $uri
-   *   The URI string to analyze.
+   *   The URI to analyse.
    *
    * @return string
    *   The URL type. One of:
@@ -804,27 +700,19 @@ class AddCTA extends FieldPluginBase {
   protected function getUrlType(string $uri): string {
     $uri = trim($uri);
 
-    // Empty URI.
-    if (empty($uri)) {
+    if ($uri === '') {
       return 'none';
     }
 
     // Check for route: scheme (nolink, button, front, current_node).
     if (str_starts_with($uri, 'route:')) {
-      $route_name = substr($uri, 6);
-      if ($route_name === '<nolink>') {
-        return 'nolink';
-      }
-      if ($route_name === '<button>') {
-        return 'button';
-      }
-      if ($route_name === '<front>') {
-        return 'front';
-      }
-      if ($route_name === '<current_node>') {
-        return 'current_node';
-      }
-      return 'route';
+      return match (substr($uri, strlen('route:'))) {
+        '<nolink>'       => 'nolink',
+        '<button>'       => 'button',
+        '<front>'        => 'front',
+        '<current_node>' => 'current_node',
+        default          => 'route',
+      };
     }
 
     // Check for explicit <front> or internal:/.
@@ -853,7 +741,7 @@ class AddCTA extends FieldPluginBase {
   }
 
   /**
-   * Converts a stored URI string to a Drupal Url object.
+   * Converts a stored URI string into a Drupal Url object.
    *
    * This method handles all supported URI schemes and special values,
    * returning a valid Url object that can be used in render arrays.
@@ -869,57 +757,42 @@ class AddCTA extends FieldPluginBase {
    * - https://... → External URL
    *
    * @param string $uri
-   *   The URI string to convert. May include schemes like internal:, entity:,
-   *   route:, or standard URL schemes.
+   *   The stored URI.
    *
    * @return \Drupal\Core\Url|null
-   *   A Url object if the URI is valid and should produce a link, or NULL if:
-   *   - The URI is empty
-   *   - The URI is a no-link value (<nolink>, <button>)
-   *   - The URI is invalid or cannot be parsed
-   *
-   * @see \Drupal\Core\Url::fromUri()
-   * @see \Drupal\Core\Field\Plugin\Field\FieldType\LinkItem::getUrl()
+   *   A Url object, or NULL when no link should be rendered.
    */
   protected function getUrl(string $uri): ?Url {
     $uri = trim($uri);
 
-    // Return NULL for empty URIs.
-    if (empty($uri)) {
+    if ($uri === '') {
       return NULL;
     }
 
-    // Handle route: scheme for special values.
     if (str_starts_with($uri, 'route:')) {
-      $route_name = substr($uri, 6);
+      $route = substr($uri, strlen('route:'));
 
-      // <nolink> and <button> should not produce a link.
-      if (in_array($route_name, ['<nolink>', '<button>'], TRUE)) {
+      if (in_array($route, ['<nolink>', '<button>'], TRUE)) {
         return NULL;
       }
 
-      // <front> links to the site's front page.
-      if ($route_name === '<front>') {
+      if ($route === '<front>') {
         return Url::fromRoute('<front>');
       }
 
-      // <current_node> is handled in render() method with entity context.
-      if ($route_name === '<current_node>') {
+      // <current_node> is resolved with entity context in render().
+      if ($route === '<current_node>') {
         return NULL;
       }
     }
 
-    // Handle explicit <front> value or internal:/ (front page).
     if ($uri === 'internal:/' || $uri === '<front>') {
       return Url::fromRoute('<front>');
     }
 
-    // Attempt to create a Url object from the URI.
-    // This handles all standard schemes: internal:, entity:, https:, etc.
     try {
       return Url::fromUri($uri);
-    } catch (\InvalidArgumentException $e) {
-      // Invalid URI format.
+    } catch (\InvalidArgumentException) {
       return NULL;
     }
   }

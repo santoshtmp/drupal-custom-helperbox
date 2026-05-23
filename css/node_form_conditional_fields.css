@@ -1,0 +1,12 @@
+.field--widget-datetime-range-flatpickr .form-item input,
+.field--widget-datetime-flatpickr .form-item input,
+.js-form-type-datetime-flatpickr input,
+.field--widget-datetime-range-separate-inputs-flatpickr div.form-item input {
+    margin-left: 0px !important;
+}
+
+#training-participant-group-filter-option-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}

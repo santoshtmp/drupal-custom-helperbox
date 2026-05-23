@@ -2,6 +2,8 @@
 
 namespace Drupal\helperbox\EventSubscriber;
 
+use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\helperbox\Helper\HelperboxSettings;
 use Drupal\path_alias\AliasManagerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -22,13 +24,23 @@ class LoginBlockSubscriber implements EventSubscriberInterface {
   protected $aliasManager;
 
   /**
+   * The current user.
+   *
+   * @var \Drupal\Core\Session\AccountProxyInterface
+   */
+  protected $currentUser;
+
+  /**
    * Constructs a new LoginBlockSubscriber.
    *
    * @param \Drupal\path_alias\AliasManagerInterface $alias_manager
    *   The path alias manager.
+   * @param \Drupal\Core\Session\AccountProxyInterface $current_user
+   *   The current user.
    */
-  public function __construct(AliasManagerInterface $alias_manager) {
+  public function __construct(AliasManagerInterface $alias_manager, AccountProxyInterface $current_user) {
     $this->aliasManager = $alias_manager;
+    $this->currentUser = $current_user;
   }
 
   /**
@@ -49,30 +61,39 @@ class LoginBlockSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    $request = $event->getRequest();
-    $rawPath = ltrim($request->server->get('REQUEST_URI'), '/');
-    // Remove query string if present.
-    if ($pos = strpos($rawPath, '?')) {
-      $rawPath = substr($rawPath, 0, $pos);
+    // Check if the feature is enabled in configuration.
+    if (!HelperboxSettings::get_config('enable_only_alies_login_url')) {
+      return;
     }
-    // Remove only the first 'sub_dir_name/' prefix.
-    $rawPath = preg_replace('/^sub_dir_name\//', '', $rawPath, 1);
-    // Remove trailing slash.
-    $rawPath = rtrim($rawPath, '/');
-    
-    // Block /user if user is not authenticated.
-    // Check session directly since currentUser may not be initialized yet at this priority.
-    $session = $request->getSession();
-    $isAuthenticated = $session && $session->has('uid') && $session->get('uid') > 0;
-    if ($rawPath === 'user' && !$isAuthenticated) {
+
+    // Bail out early if no alias exists for /user/login.
+    $login_alias = $this->aliasManager->getAliasByPath('/user/login');
+    if ($login_alias === '/user/login') {
+      return;
+    }
+
+    $request = $event->getRequest();
+
+    // Get the clean path, stripping query string and leading slash.
+    // getPathInfo() handles subdirectories automatically.
+    // e.g. /sub-dir/user/login → /user/login
+    $rawPath = $request->getPathInfo();
+    $rawPath = trim($rawPath, '/');
+    if (empty($rawPath)) {
+      return;
+    }
+
+    // Block /user for anonymous users.
+    if ($rawPath === 'user' && $this->currentUser->isAnonymous()) {
       throw new NotFoundHttpException();
     }
 
-    // Block direct access to /user/login and /user/password.
-    // Users must use URL aliases like /user-login instead.
-    if ($rawPath === 'user/login' || $rawPath === 'user/password') {
+    // Block direct access to /user/login and /user/password when an alias exists.
+    $protectedPaths = ['user/login', 'user/password'];
+    if (in_array($rawPath, $protectedPaths, TRUE)) {
       $alias = $this->aliasManager->getAliasByPath('/' . $rawPath);
-      if ($alias != '/' . $rawPath) {
+      // If an alias exists (different from the system path), block the system path.
+      if ($alias !== '/' . $rawPath) {
         throw new NotFoundHttpException();
       }
     }

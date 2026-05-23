@@ -11,6 +11,9 @@ helperbox.settings:
     enable_unique_node_per_bundle:
       type: boolean
       label: "Enable unique node/item per content bundle"
+    enable_only_alies_login_url:
+      type: boolean
+      label: "Enable Only Aliases Login URL"
     helperbox_text:
       type: text
       label: "Helperbox text"
@@ -24,7 +27,7 @@ helperbox.settings:
         cdn_lightgallery:
           type: boolean
           label: "Enable lightgallery from CDN"
-    field_rules_all:
+    field_all_rules:
       type: ignore
       label: "Field Rules All"
     field_rules_node:
@@ -44,9 +47,19 @@ block.settings.helperbox_menu_block:
     menu_layout:
       type: string
       label: "Menu layout"
+    menu_layout_subtype:
+      type: string
+      label: "Menu layout subtype"
+    menu_layout_location:
+      type: string
+      label: "Menu layout location"
+    mobile_menu_panel_title:
+      type: string
+      label: "Mobile menu panel title"
     menu_title:
-      type: label
+      type: string
       label: "Menu title"
+      translatable: true
     menu_type:
       type: string
       label: "Menu type"
@@ -161,6 +174,7 @@ block.settings.helperbox_banner_block:
           label:
             type: string
             label: "Label"
+            translatable: true
           url:
             type: string
             label: "URL"
@@ -321,6 +335,7 @@ block.settings.helperbox_content_type_block:
           label:
             type: string
             label: "Label"
+            translatable: true
           url:
             type: string
             label: "URL"
@@ -338,7 +353,6 @@ views.field.helperbox_renderblock:
   type: views_field
   label: "Helperbox Render Block field"
   mapping:
-    # Your module's custom settings (from earlier warnings)
     block_type:
       type: string
       label: "Block type"
@@ -351,17 +365,14 @@ views.field.helperbox_renderblock:
     display_id:
       type: string
       label: "Display ID"
-    # If the plugin has more custom keys (check the plugin class's defineOptions() method), add them here too
 
 views.field.helperbox_custom_text:
   type: views_field
   label: "Helperbox Custom Text field"
   mapping:
-    # Custom key(s)
     custom_text:
       type: string
       label: "Custom text content"
-    # Add others if present in the plugin's options
 
 views.field.helperbox_add_media:
   type: views_field
@@ -382,8 +393,9 @@ views.field.helperbox_add_cta:
   label: "Helperbox Add CTA field"
   mapping:
     cta_label:
-      type: label
+      type: string
       label: "CTA label"
+      translatable: true
     cta_url:
       type: string
       label: "CTA URL"
@@ -494,6 +506,21 @@ field.formatter.settings.helperbox_fieldformat_daterange:
     helperbox_formatter:
       type: boolean
       label: "Helperbox formatter"
+    timezone_override:
+      type: string
+      label: "Timezone override"
+    date_format:
+      type: string
+      label: "Date format"
+    from_to:
+      type: string
+      label: "From/To display"
+    separator:
+      type: string
+      label: "Date separator"
+    showdatestatus:
+      type: boolean
+      label: "Show date status"
 
 field.formatter.settings.helperbox_fieldformat_mediainfo:
   type: mapping
@@ -506,8 +533,9 @@ field.formatter.settings.helperbox_fieldformat_mediainfo:
       type: string
       label: "Filesize option"
     downloadlinklabel:
-      type: label
+      type: string
       label: "Download link label"
+      translatable: true
     image_style:
       type: string
       label: "Image style"
@@ -519,3 +547,31 @@ field.formatter.settings.helperbox_fieldformat_tel_phone_number:
     title:
       type: string
       label: "Link title"
+      translatable: true
+
+# NEW: CTA Link formatter settings
+field.formatter.settings.helperbox_fieldformat_cta_link:
+  type: mapping
+  label: "HelperBox CTA Link formatter settings"
+  mapping:
+    cta_type:
+      type: string
+      label: "CTA type"
+
+# Filter plugin: helperbox_date_range_status
+views.filter.helperbox_date_range_status:
+  type: views_filter
+  label: "Helperbox Date Range Status filter"
+  mapping:
+    widget_type:
+      type: string
+      label: "Widget type"
+
+# Filter plugin: helperbox_date_range_selector
+views.filter.helperbox_date_range_selector:
+  type: views_filter
+  label: "Helperbox Date Range Selector filter"
+  mapping:
+    date_mode:
+      type: string
+      label: "Date mode"
