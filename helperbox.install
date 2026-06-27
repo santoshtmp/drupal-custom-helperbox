@@ -27,6 +27,34 @@ use Drupal\Core\Language\LanguageInterface;
  */
 
 /**
+ * Implements hook_install().
+ */
+function helperbox_install() {
+    helperbox_enable_views_display_extender();
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function helperbox_update_9001() {
+    helperbox_enable_views_display_extender();
+}
+
+/**
+ * Enables the HelperBox Views display extender.
+ */
+function helperbox_enable_views_display_extender() {
+    $config = \Drupal::configFactory()->getEditable('views.settings');
+
+    $extenders = $config->get('display_extenders') ?: [];
+
+    if (!in_array('helperbox_display_extender', $extenders, TRUE)) {
+        $extenders[] = 'helperbox_display_extender';
+        $config->set('display_extenders', $extenders)->save();
+    }
+}
+
+/**
  * 
  */
 function process_translatable_menu_link_content() {

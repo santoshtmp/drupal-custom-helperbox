@@ -7,6 +7,8 @@ use Drupal\block\Entity\Block;
 use Drupal\block_content\Entity\BlockContent;
 use Drupal\views\Views;
 
+use function PHPSTORM_META\type;
+
 /**
  * Reference:
  * https://www.drupal.org/documentation
@@ -144,11 +146,11 @@ class GetBlock {
      *
      * @param string $view_id      The view machine name.
      * @param string $display_id   The display ID (e.g. 'block_1').
-     * @param array  $previewArgs  Optional arguments to pass to the view.
+     * @param array  $args  Optional arguments to pass to the view.
      *
      * @return array|false
      */
-    public static function get_rendered_views_block(string $view_id, string $display_id, $previewArgs = []) {
+    public static function get_rendered_views_block(string $view_id, string $display_id, $args = [], $return = 'render') {
         try {
             $view = Views::getView($view_id);
 
@@ -156,24 +158,44 @@ class GetBlock {
                 return [];
             }
 
-            $render = $view->preview($display_id, $previewArgs);
+            $view->setDisplay($display_id);
+            $view->setArguments($args);
+            $view->preExecute($args);
+            $view->execute();
 
-            // Set the display (block_11, page_1, etc.)
-            // $view->setDisplay($display_id);
-            // $view->execute($display_id);
+            if (empty($view->result)) {
+                return [];
+            }
+
+            $render = $view->render($display_id);
+
+            switch ($return) {
+                case 'header':
+                    $output = $render['#header'] ?? [];
+                    break;
+                case 'more':
+                    $output = $render['#more'] ?? [];
+                    break;
+                case 'rows':
+                    $output = $render['#rows'] ?? [];
+                    break;
+                case 'render':
+                default:
+                    $output = $render;
+                    break;
+            }
 
             // Optional: set arguments, exposed input, etc.
-            // $view->setArguments(['arg1']);
             // $view->setExposedInput(['field_foo' => 'bar']);
 
             // This builds the full render array exactly as the block would appear
             // $render = $view->buildRenderable($display_id);
             // $render = $view->render($display_id);
-            // $render = $view->preview($display_id, []);
+            // $output = $view->preview($display_id, $args);
 
             // $render  = \Drupal::service('renderer')->renderPlain($render);
 
-            return $render;
+            return $output;
         } catch (\Throwable $th) {
             UtilHelper::helperbox_error_log($th);
         }

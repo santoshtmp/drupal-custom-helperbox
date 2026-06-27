@@ -5,8 +5,29 @@
     margin-left: 0px !important;
 }
 
+.field--widget-datetime-flatpickr .form-item {
+    background: unset;
+}
+
 #training-participant-group-filter-option-list {
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
+}
+
+.field--type-time.field--name-field-time {
+    table#field-time-values {
+        tbody {
+            display: flex;
+
+            tr {
+                border-bottom: unset;
+            }
+
+            td.field-multiple-drag,
+            td.delta-order {
+                display: none;
+            }
+        }
+    }
 }

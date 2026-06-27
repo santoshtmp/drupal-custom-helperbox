@@ -10,9 +10,7 @@
  * - menu_title: string - The menu title (currently unused in template)
  * - menu_items: array - The menu items tree structure
  * - menu_type: string - Type identifier used for CSS class generation
- * - social_link_title: string - Title for social links section (currently unused)
- * - social_links: array - Social media links (currently unused)
- * - background_image: string - Background image URL/path (currently unused)
+ * - other_variables: array - Other variables to be passed to the template
  * - attributes: object - HTML attributes for the menu wrapper
  *
  * @see @helperbox/macro/menuitems.html.twig
@@ -22,7 +20,7 @@
 #}
 
 {% import '@helperbox/macro/menuitems.html.twig' as component_menus %}
-<div class="helperbox-menu">
+<div class="helperbox-menu menu--layout-{{menu_layout}}--menu-{{menu_type}} " menu-layout="{{ menu_layout }}" menu-type="{{ menu_type }}" menu-region="{{ menu_region_location }}" >
 	{% if menu_items %}
 		{#
 			Choose the appropriate macro based on menu_layout:

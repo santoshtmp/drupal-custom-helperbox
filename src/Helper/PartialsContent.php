@@ -16,113 +16,6 @@ use Drupal\node\NodeInterface;
  */
 class PartialsContent {
 
-    /**
-     * Get Countries In Focus Content.
-     *
-     * @return array
-     */
-    public static function getCountriesInFocus() {
-        $data = [
-            'field_mapboxgl_access_token' => '',
-            'countries' => [],
-            'total_countries' => 0,
-            'total_cso' => 0,
-            'total_resources' => 0,
-        ];
-        try {
-            // Get Mapbox Access Token from FIMI Settings
-            $config_pages_loader = new \Drupal\config_pages\ConfigPagesLoaderService();
-            $fimi_settings = $config_pages_loader->load('fimi_settings');
-            if ($fimi_settings) {
-                // field_mapboxgl_access_token
-                if ($fimi_settings->hasField('field_mapboxgl_access_token') && !$fimi_settings->get('field_mapboxgl_access_token')->isEmpty()) {
-                    $data['field_mapboxgl_access_token'] = $fimi_settings->get('field_mapboxgl_access_token')->value;
-                }
-            }
-
-            // ---- Get total collaborator CSO's ----
-            $term_cso_id = 9;
-            $cos_query = \Drupal::entityQuery('node')
-                ->accessCheck(TRUE)
-                ->condition('type', 'collaborator')
-                ->condition('status', 1)
-                ->condition('field_collaborator_type.target_id', $term_cso_id);
-
-            $data['total_cso'] = $cos_query->count()->execute();
-
-            // ---- Get total Resources ----
-            $resource_query = \Drupal::entityQuery('node')
-                ->accessCheck(TRUE)
-                ->condition('type', 'resources')
-                ->condition('status', 1);
-            $data['total_resources'] = $resource_query->count()->execute();
-
-            // Build query: get all published country nodes except node ID 12
-            $query = \Drupal::entityQuery('node')
-                ->accessCheck(TRUE)
-                ->condition('type', 'country')
-                ->condition('status', 1)
-                ->condition('nid', 12, '<>'); // Exclude node ID 12
-
-            $nids = $query->execute();
-            if (empty($nids)) {
-                return $data;
-            }
-
-            // Set total count.
-            $data['total_country'] = count($nids);
-
-            // Load nodes
-            $nodes = Node::loadMultiple($nids);
-
-            foreach ($nodes as $node) {
-                $node_content = [];
-                $nid = $node->id();
-
-                $node_content['id'] = $nid;
-                $node_content['title'] = $node->getTitle();
-
-                // Generate node URL
-                $node_content['url'] = Url::fromRoute('entity.node.canonical', ['node' => $nid], ['absolute' => TRUE])->toString();
-
-                // Body and summary
-                $node_content['body'] = $node->get('body')->value ?? '';
-                $node_content['summary'] = $node->get('body')->summary ?? '';
-
-                // Count related resources
-                $related_resource_query = \Drupal::entityQuery('node')
-                    ->accessCheck(TRUE)
-                    ->condition('type', 'resources')
-                    ->condition('status', 1)
-                    ->condition('field_related_countries', $nid);
-                $node_content['number_of_resources'] = $related_resource_query->count()->execute();
-
-                // count related collaborator CSO's
-                $related_cos_query = \Drupal::entityQuery('node')
-                    ->accessCheck(TRUE)
-                    ->condition('type', 'collaborator')
-                    ->condition('status', 1)
-                    ->condition('field_collaborator_type.target_id', $term_cso_id)
-                    ->condition('field_related_countries', $nid);
-                $node_content['number_of_csos'] = $related_cos_query->count()->execute();
-
-                // field_country_code_3digit
-                $field_country_code_3digit = '';
-                if ($node->hasField('field_country_code_3digit') && !$node->get('field_country_code_3digit')->isEmpty()) {
-                    $field_country_code_3digit = $node->get('field_country_code_3digit')->value;
-                    $node_content['field_country_code_3digit'] =  $field_country_code_3digit;
-                }
-                if (!$field_country_code_3digit) {
-                    continue;
-                }
-
-                $data['countries'][$field_country_code_3digit] = $node_content;
-            }
-        } catch (\Throwable $th) {
-            //throw $th;
-        }
-        return $data;
-    }
 
     /**
      * Get banner content.
@@ -211,6 +104,43 @@ class PartialsContent {
             }
         }
         return $banner_content;
+    }
+
+    /**
+     * Get social links.
+     *
+     * @return array
+     */
+    public static function getSocialLinks() {
+        $social_links = [];
+        $config_pages_loader = new \Drupal\config_pages\ConfigPagesLoaderService();
+        $site_settings = $config_pages_loader->load('site_settings');
+
+        // field_social_media_link
+        if ($site_settings->hasField('field_social_media_link') && !$site_settings->get('field_social_media_link')->isEmpty()) {
+            $social_connect_list = $site_settings->get('field_social_media_link');
+            $field_social_icon_style = '';
+            if ($site_settings->hasField('field_social_icon_style') && !$site_settings->get('field_social_icon_style')->isEmpty()) {
+                $field_social_icon_style = $site_settings->get('field_social_icon_style')->target_id;
+            }
+            $paragraph_data = [];
+            foreach ($social_connect_list as $key => $social_connect) {
+                $paragraph = $social_connect->entity;
+                if ($paragraph->hasField('field_icon') && !$paragraph->get('field_icon')->isEmpty()) {
+                    $field_icon_entity_id = $paragraph->get('field_icon')->entity->id();
+                    $paragraph_data[$key]['field_icon'] = MediaHelper::get_media_library_info($field_icon_entity_id, $field_social_icon_style);
+                }
+                if ($paragraph->hasField('field_type') && !$paragraph->get('field_type')->isEmpty()) {
+                    $paragraph_data[$key]['field_type'] = $paragraph->get('field_type')->value;
+                }
+                if ($paragraph->hasField('field_link') && !$paragraph->get('field_link')->isEmpty()) {
+                    $first_item = $paragraph->get('field_link')->first();
+                    $paragraph_data[$key]['field_link'] =  $first_item->getUrl()->toString();
+                }
+            }
+            $social_links = $paragraph_data;
+        }
+        return $social_links;
     }
 
     /**

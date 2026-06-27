@@ -35,22 +35,28 @@ class MenuBlock extends BlockBase {
     $menu_layout_subtype = isset($config['menu_layout_subtype']) ? $config['menu_layout_subtype'] : 'menu_dropdown';
     $menu_type = isset($config['menu_type']) ? $config['menu_type'] : 'menu';
     $menu_levels = isset($config['menu_levels']) ? (int)$config['menu_levels'] : 1;
+    $menu_region_location = isset($config['menu_region_location']) ? $config['menu_region_location'] : '';
 
     $background_image = isset($config['background_image']) ? $config['background_image'] : '';
     $background_image_style = isset($config['background_image_style']) ? $config['background_image_style'] : '';
     $background_image = ($background_image) ? MediaHelper::get_media_library_info($background_image, $background_image_style) : [];
 
+    $other_variables = [];
+    // Allow modules/themes to alter the menu item. using hook hook_helperbox_menu_item_alter().
+    \Drupal::moduleHandler()->alter('helperbox_menu_other_variables', $other_variables, $config);
+    \Drupal::theme()->alter('helperbox_menu_other_variables', $other_variables, $config);
+
     $build_context =  [
       '#theme' => 'helperbox_menu',  // This links to the template defined in hook_theme().
       '#menu_layout' => $menu_layout,
+      '#menu_region_location' => $menu_region_location,
       '#menu_layout_location' => $config['menu_layout_location'] ?? 'right',
       '#menu_layout_subtype' => $menu_layout_subtype,
       '#mobile_menu_panel_title' => $config['mobile_menu_panel_title'] ?? 'Menu',
       '#menu_type' => $menu_type,
       '#menu_title' => MenuHelper::get_menu_title($menu_type),
-      '#menu_items' => MenuHelper::get_menu_items($menu_type, $menu_levels),
-      '#social_link_title' => isset($config['social_link_title']) ? $config['social_link_title'] : '',
-      '#social_links' => '', //($menu_layout == 'default') ? '' : theme_get_setting('social_links'),
+      '#menu_items' => MenuHelper::get_menu_items($menu_type, $menu_levels, $menu_region_location),
+      '#other_variables' => $other_variables,
       '#background_image' => $background_image,
       '#attributes' => [],
       '#attached' => [
@@ -74,13 +80,15 @@ class MenuBlock extends BlockBase {
   public function defaultConfiguration() {
     return [
       'menu_layout' => '',
+      'menu_region_location' => '',
       'menu_layout_subtype' => '',
       'menu_layout_location' => 'right',
       'mobile_menu_panel_title' => '',
       'menu_title' => '',
       'menu_type' => '',
       'menu_items' => [],
-      'background_image' => ''
+      'background_image' => '',
+      'other_variables' => []
     ];
   }
 
@@ -116,6 +124,26 @@ class MenuBlock extends BlockBase {
       '#default_value' => isset($config['menu_levels']) ? $config['menu_levels'] : 1,
       '#options' => $options,
       '#description' => $this->t('This maximum number includes the initial level.'),
+      '#required' => TRUE,
+    ];
+
+    /**
+     * menu_region_location
+     */
+    $menu_region_location_selected = isset($config['menu_region_location']) ? $config['menu_region_location'] : 'default';
+    $options = [
+      'default' => "Default Layout",
+      'primary' => "Primary Menu Region",
+      'secondary' => "Secondary Menu Region",
+      'mobile' => "Mobile Menu Region",
+      'footer' => "Footer Menu Region",
+      'sidebar' => "Sidebar Menu Region",
+    ];
+    $form['menu_region_location'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Menu Region Location:'),
+      '#options' => $options,
+      '#default_value' => $menu_region_location_selected,
       '#required' => TRUE,
     ];
 
@@ -222,20 +250,6 @@ class MenuBlock extends BlockBase {
     //   ],
     // );
 
-    // /**
-    //  * 
-    //  */
-    // $social_link_title = isset($config['social_link_title']) ? $config['social_link_title'] : '';
-    // $form['social_link_title'] = array(
-    //   '#type' => 'textfield',
-    //   '#title' => $this->t('Social Link Title'),
-    //   '#default_value' => isset($social_link_title) ? $social_link_title : '',
-    //   '#description' => $this->t('Social links are managed through theme settings <a href="/admin/appearance/settings/fimi#social-link-items-wrapper">social links</a>.'),
-    //   '#states' => [
-    //     'visible' => [':input[name="settings[menu_layout]"]' => ['value' => 'expanded']],
-    //   ],
-    // );
-
     // 
     return $form;
   }
@@ -247,12 +261,12 @@ class MenuBlock extends BlockBase {
     // Save our custom settings when the form is submitted.
     $this->setConfigurationValue('menu_type', $form_state->getValue('menu_type'));
     $this->setConfigurationValue('menu_levels', $form_state->getValue('menu_levels'));
+    $this->setConfigurationValue('menu_region_location', $form_state->getValue('menu_region_location'));
     $this->setConfigurationValue('menu_layout', $form_state->getValue('menu_layout'));
     $this->setConfigurationValue('menu_layout_subtype', $form_state->getValue('menu_layout_subtype'));
     $this->setConfigurationValue('menu_layout_location', $form_state->getValue('menu_layout_location'));
     $this->setConfigurationValue('mobile_menu_panel_title', $form_state->getValue('mobile_menu_panel_title'));
 
-    // $this->setConfigurationValue('social_link_title', $form_state->getValue('social_link_title'));
     // $this->setConfigurationValue('background_image', $form_state->getValue('background_image'));
     // $this->setConfigurationValue('background_image_style', $form_state->getValue('background_image_style'));
   }

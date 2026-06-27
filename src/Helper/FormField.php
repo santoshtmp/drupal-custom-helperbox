@@ -252,6 +252,8 @@ class FormField {
                 ];
             }
 
+            $this->checkAllFields($form, $form_state, $entity);
+
             // 
             // $this->checkAllFields($form, $form_state, $entity);
         } catch (\Throwable $th) {
@@ -340,6 +342,9 @@ class FormField {
                             if (is_string($fieldValue)) {
                                 $form[$fieldValue]['#access'] = false;
                             }
+                            if (is_bool($fieldValue)) {
+                                $form[$fieldType]['#access'] = $fieldValue;
+                            }
                             if (is_array($fieldValue)) {
                                 foreach ($fieldValue as $keyfield => $condition) {
                                     $form[$keyfield]['#access'] = $condition;
@@ -359,6 +364,9 @@ class FormField {
                     } else {
                         if (is_string($fieldValue)) {
                             $form[$fieldValue]['#access'] = $thisNodeShow;
+                        }
+                        if (is_bool($fieldValue)) {
+                            $form[$fieldType]['#access'] = $fieldValue;
                         }
                         if ($thisNodeShow && is_array($fieldValue)) {
                             foreach ($fieldValue as $keyfield => $condition) {

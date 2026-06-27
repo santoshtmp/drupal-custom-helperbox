@@ -1,34 +1,75 @@
 helperbox.settings:
-  path: '/admin/config/development/customhelperbox'
+  path: "/admin/config/development/customhelperbox"
   defaults:
     _form: '\Drupal\helperbox\Form\HelperboxSettingsForm'
-    _title: 'Custom Helperbox settings'
+    _title: "Custom Helperbox settings"
   requirements:
-    _permission: 'administer site configuration'
+    _permission: "administer site configuration"
+# API Controller Route
 helperbox.api_test:
-  path: '/api/testhelperbox'
+  path: "/api/testhelperbox"
   defaults:
     _controller: '\Drupal\helperbox\Controller\TestApiController::getData'
-    _format: 'json'
+    _format: "json"
   requirements:
-    _permission: 'access content'
+    _permission: "access content"
   methods: [GET]
+helperbox.search_entity:
+  path: "/api/search/entity"
+  defaults:
+    _controller: '\Drupal\helperbox\Controller\SearchEntityController::getData'
+    _format: "json"
+  requirements:
+    _permission: "access content"
+  methods: [GET]
+helperbox.api.taxonomy:
+  path: "/helperbox/api/taxonomy/{machine_name}"
+  defaults:
+    _controller: '\Drupal\helperbox\Controller\TaxonomyApiController::getData'
+    _title: "Taxonomy API"
+  requirements:
+    _permission: "access content"
+  methods: [GET]
+helperbox.api.node:
+  path: "/helperbox/api/node/{content_type}"
+  defaults:
+    _controller: '\Drupal\helperbox\Controller\NodeApiController::getData'
+    _title: "Node API"
+  requirements:
+    _permission: "access content"
+  methods: [GET]
+helperbox.api.importdata:
+  path: "/helperbox/api/importdata"
+  defaults:
+    _controller: '\Drupal\helperbox\Controller\ContentDataImportAPIController::init'
+    _title: "Import Content Data API"
+  requirements:
+    _permission: "access content"
+  methods: [POST]
 # web/core/modules/user/user.routing.yml
 helperbox.user_login:
-  path: '/user-login'
+  path: "/user-login"
   defaults:
     _form: '\Drupal\user\Form\UserLoginForm'
-    _title: 'Log in'
+    _title: "Log in"
   requirements:
-    _user_is_logged_in: 'FALSE'
+    _user_is_logged_in: "FALSE"
   options:
     _maintenance_access: TRUE
 helperbox.user_pass:
-  path: '/user-password'
+  path: "/user-password"
   defaults:
     _form: '\Drupal\user\Form\UserPasswordForm'
-    _title: 'Reset your password'
+    _title: "Reset your password"
   requirements:
-    _access: 'TRUE'
+    _access: "TRUE"
   options:
     _maintenance_access: TRUE
+# Import form page
+helperbox.import_content_data:
+  path: "/admin/helperbox/import/content-data"
+  defaults:
+    _form: '\Drupal\helperbox\Form\ContentDataImportForm'
+    _title: "Import Content Data"
+  requirements:
+    _permission: "administer content"

@@ -54,14 +54,6 @@ class DateSelector extends FilterPluginBase {
                 continue;
             }
 
-            // Get a human-readable group label.
-            try {
-                $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
-                $group_label = $group . ' - ' . (string) $entity_type->getLabel();
-            } catch (\Exception $e) {
-                $group_label = $group . ' - ' . $entity_type_id;
-            }
-
             // Register the filter for this date field.
             // Key is unique per field to avoid collisions.
             $data[$table_name][$field_name . '_selector'] = [
@@ -75,10 +67,32 @@ class DateSelector extends FilterPluginBase {
                     'field'  => $field_name . '_value', // Sets $this->realField in the plugin.
                     'id'     => 'helperbox_date_selector',
                 ],
-                'group'  => $group_label,
+                'group'  => $group,
             ];
         }
         return $data;
+    }
+
+
+    /**
+     * {@inheritdoc}
+     * 
+     * FIX: Override this to prevent the base class from rendering an empty 
+     * <div class="views-left-30"></div> which breaks the Views UI modal layout.
+     */
+    public function showOperatorForm(&$form, FormStateInterface $form_state) {
+        // Do nothing. We have no operators, so we don't want the left column wrapper.
+    }
+
+    /**
+     * {@inheritdoc}
+     * 
+     * FIX: Override this to prevent wrapping the value form in 'views-right-70'.
+     * Since we removed the left column, the value form should take 100% width.
+     */
+    protected function showValueForm(&$form, FormStateInterface $form_state) {
+        $this->valueForm($form, $form_state);
+        // We intentionally do NOT add the 'views-right-70' wrapper here.
     }
 
 

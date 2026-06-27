@@ -237,8 +237,8 @@ class AddCTA extends FieldPluginBase {
       '#type'          => 'textarea',
       '#title'         => $this->t('Query Parameters'),
       '#default_value' => $this->options['cta_query_params'],
-      '#description'   => $this->t(
-        'Enter query parameters one per line as key=value pairs. Available placeholders: {id}, {bundle}, {entity_type}, {title}, {url}.'
+      '#description' => $this->t(
+        'Enter query parameters, one per line in the format: key=value. For example: <br> filter=active <br> sort=date <br> limit=10 <br>  <br> Available placeholders for dynamic values: <br> {id} - Entity ID  <br>  {bundle} - Entity bundle/type <br> {entity_type} - Entity type <br> {title} - Entity title <br> {url} - Entity string url'
       ),
       '#fieldset'  => 'cta_settings',
       '#rows'      => 5,
@@ -280,7 +280,7 @@ class AddCTA extends FieldPluginBase {
     $bundle_storage_map = [
       'node' => 'node_type',
       'block_content' => 'block_content_type',
-      'taxonomy_term' => 'vocabulary',
+      'taxonomy_term' => 'taxonomy_vocabulary',
       'media' => 'media_type',
     ];
 
@@ -519,7 +519,7 @@ class AddCTA extends FieldPluginBase {
         '#cta_label'   => (string) $cta_label,
         '#cta_type'    => $cta_type,
         '#cta_target'  => '',
-        '#attributes'  => [],
+        '#attributes'  => new \Drupal\Core\Template\Attribute([]),
         '#url_type'    => $url_type,
         '#is_external' => FALSE,
         '#is_no_link'  => TRUE,

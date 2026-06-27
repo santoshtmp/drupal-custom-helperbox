@@ -8,9 +8,11 @@
 use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\query\QueryPluginBase;
 use Drupal\helperbox\Helper\UtilHelper;
+use Drupal\helperbox\Plugin\views\filter\DateCreatedSelector;
 use Drupal\helperbox\Plugin\views\filter\DateRangeSelector;
 use Drupal\helperbox\Plugin\views\filter\DateRangeStatus;
 use Drupal\helperbox\Plugin\views\filter\DateSelector;
+use Drupal\helperbox\Plugin\views\filter\ViewEntityReferenceField;
 
 /**
  * Implements hook_views_query_alter().
@@ -119,4 +121,6 @@ function helperbox_views_data_alter(array &$data) {
     $data = DateRangeStatus::views_data_alter($data, $group);
     $data = DateRangeSelector::views_data_alter($data, $group);
     $data = DateSelector::views_data_alter($data, $group);
+    DateCreatedSelector::views_data_alter($data, $group);
+    $data = ViewEntityReferenceField::views_data_alter($data, $group);
 }

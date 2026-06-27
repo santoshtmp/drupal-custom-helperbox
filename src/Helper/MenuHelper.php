@@ -76,6 +76,8 @@ class MenuHelper {
      * @param int $max_menu_levels
      *   The maximum number of menu levels to include. Set to 0 for unlimited.
      *   Defaults to 1.
+     * @param string $menu_region_location
+     *   The location of the menu region. This can be used to filter menu items based on a custom field (e.g. 'field_menu_location') attached to menu link content entities. Defaults to an empty string, which means no filtering by location.
      *
      * @return array
      *   A nested array of menu items suitable for rendering.
@@ -87,7 +89,7 @@ class MenuHelper {
      * @see \Drupal\Core\Menu\MenuTreeParameters
      * @see core\modules\navigation\src\Plugin\Block\NavigationMenuBlock.php
      */
-    public static function get_menu_items(string $menu_name = 'main', int $max_menu_levels = 1): array {
+    public static function get_menu_items(string $menu_name = 'main', int $max_menu_levels = 1, $menu_region_location = ''): array {
         $parameters = new MenuTreeParameters();
         $parameters->onlyEnabledLinks();
         $menu_tree = \Drupal::menuTree();
@@ -101,7 +103,7 @@ class MenuHelper {
         $tree = $menu_tree->transform($tree, $manipulators);
 
         // Convert tree to custom array.
-        return self::build_menu_array($tree, $max_menu_levels);
+        return self::build_menu_array($tree, $max_menu_levels, $menu_region_location);
     }
 
     /**
@@ -115,6 +117,8 @@ class MenuHelper {
      *   An array of MenuLinkTreeElement objects representing the menu tree.
      * @param int $max_menu_levels
      *   The maximum number of menu levels to include. Set to 0 for unlimited.
+     * @param string $menu_region_location
+     *   The location of the menu region. This can be used to filter menu items based on a custom field (e.g. 'field_menu_location') attached to menu link content entities.
      * @param int $menu_level
      *   The current depth level being processed. Defaults to 1.
      *
@@ -138,7 +142,7 @@ class MenuHelper {
      * @see \Drupal\Core\Menu\MenuLinkTreeElement
      * @see hook_helperbox_menu_item_alter()
      */
-    public static function build_menu_array(array $tree, int $max_menu_levels, int $menu_level = 1): array {
+    public static function build_menu_array(array $tree, int $max_menu_levels, string $menu_region_location = '', int $menu_level = 1): array {
         $menu_items = [];
         $current_path = \Drupal::service('path.current')->getPath();
 
@@ -161,33 +165,66 @@ class MenuHelper {
             // Get the menu item provider.
             $menu_item_type = $link->getProvider() ?: '';
 
+            // ---------------------------------------------------------------
+            // Extract link-level attributes (target, link class, container class)
+            // Menu link plugins store extra options in getOptions().
+            // The 'attributes' key holds anchor-level HTML attributes.
+            // ---------------------------------------------------------------
+            $link_options    = $link->getOptions();                          // All link options array.
+            $link_attributes = $link_options['attributes'] ?? [];            // Anchor <a> attributes.
+            $link_target     = $link_attributes['target'] ?? '';             // e.g. '_blank', '_self'
+            $link_class      = $link_attributes['class'] ?? [];              // CSS classes on <a>.
+
+            // 'container_attributes' is a convention used by some modules/themes
+            // to attach classes to the wrapping <li> or container element.
+            $container_attributes = $link_options['container_attributes'] ?? [];  // Wrapper element attributes.
+            $container_class      = $container_attributes['class'] ?? [];         // CSS classes on container.
+
+
+            // Ensure 'menu-item-link' class is always added to link attributes. 
+            $link_attributes['class'] = array_merge($link_class, ['menu-item-link']);
+            $link_as_text = $url_object->toString();
+            if ($link_as_text) {
+                $link_attributes['href'] = $link_as_text; // Ensure href is set for link attributes.
+                $nolink = false;
+            } else {
+                $nolink = true;
+            }
+
             // Build menu item array.
             $menu_item = [
                 'id' => $link->getPluginId(),
                 'title' => $link->getTitle(),
                 'url' => $url_object,
                 'is_external' => $is_external,
+                'nolink' => $nolink,
                 'weight' => $link->getWeight(),
                 'menu_level' => $menu_level,
                 'menu_item_type' => $menu_item_type,
                 'is_active' => $is_active,
                 'in_active_trail' => $element->inActiveTrail,
-                'attributes' => new Attribute(),
+                'attributes' => new Attribute(
+                    [
+                        'class' => $container_class,
+                    ]
+                ),
+                'link_attributes' => new Attribute($link_attributes)
             ];
 
             // Allow modules/themes to alter the menu item. using hook hook_helperbox_menu_item_alter().
-            \Drupal::moduleHandler()->alter('helperbox_menu_item', $menu_item, $link, $element);
-            \Drupal::theme()->alter('helperbox_menu_item', $menu_item, $link, $element);
+            \Drupal::moduleHandler()->alter('helperbox_menu_item', $menu_item, $link, $menu_region_location);
+            \Drupal::theme()->alter('helperbox_menu_item', $menu_item, $link, $menu_region_location);
 
-            // Recursively process child menu items.
-            if (!empty($subtree)) {
-                $menu_item['below'] = self::build_menu_array($subtree, $max_menu_levels, $menu_level + 1);
+            // Only include the menu item if it wasn't removed by an alter hook.
+            if (!empty($menu_item) && is_array($menu_item)) {
+                // Recursively process child menu items.
+                if (!empty($subtree)) {
+                    $menu_item['below'] = self::build_menu_array($subtree, $max_menu_levels, $menu_region_location, $menu_level + 1);
+                }
+                $menu_items[] = $menu_item;
             }
-
-            $menu_items[] = $menu_item;
         }
 
         return $menu_items;
     }
-
 }

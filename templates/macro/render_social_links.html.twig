@@ -1,0 +1,17 @@
+{#
+  We call a macro which calls itself to render the full tree.
+  @see https://twig.symfony.com/doc/3.x/tags/macro.html
+#}
+{% macro render_social_links(social_links) %}
+	{% if social_links %}
+		<ul class="social-link-wrapper">
+			{% for social_link in social_links %}
+				<li class="{{ social_link.field_type }}">
+					<a href="{{ social_link.field_link }}" social-link-type="{{ social_link.field_type }}">
+						{{ social_link.field_type }}
+					</a>
+				</li>
+			{% endfor %}
+		</ul>
+	{% endif %}
+{% endmacro %}

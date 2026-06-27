@@ -38,9 +38,16 @@
 	{% set link_attributes = link_attributes.setAttribute('rel', 'noopener noreferrer') %}
 {% endif %}
 
+{% if wrapper_attributes %}
+	<div {{wrapper_attributes}}>
+	{% endif %}
 
-<{{cta_html_tag}} {{link_attributes}}>
-	<div class="cta">
-		<span class="cta-label">{{ cta_label }}</span>
+	<{{cta_html_tag}} {{link_attributes}}>
+		<div class="cta">
+			<span class="cta-label">{{ cta_label }}</span>
+		</div>
+	</{{cta_html_tag}}>
+
+	{% if wrapper_attributes %}
 	</div>
-</{{cta_html_tag}}>
+{% endif %}

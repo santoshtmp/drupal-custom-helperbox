@@ -8,6 +8,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\datetime_range\DateTimeRangeDisplayOptions;
 use Drupal\datetime_range\Plugin\Field\FieldFormatter\DateRangeCustomFormatter;
+use Drupal\helperbox\Trait\ShowDateStatusTrait;
 
 /**
  * Plugin implementation of the 'Custom' formatter for 'daterange' fields.
@@ -23,6 +24,8 @@ use Drupal\datetime_range\Plugin\Field\FieldFormatter\DateRangeCustomFormatter;
     ],
 )]
 class DateRangeFormat extends DateRangeCustomFormatter {
+
+    use ShowDateStatusTrait;
 
     /**
      * {@inheritdoc}
@@ -41,10 +44,6 @@ class DateRangeFormat extends DateRangeCustomFormatter {
         $elements = [];
         $separator = $this->getSetting('separator');
         $showdatestatus = $this->getSetting('showdatestatus');
-
-        // Fresh DateTimeImmutable in UTC — avoids stale request-time integer
-        // from getCurrentTime() and supports both ->format() and ->getTimestamp().
-        $now_dt = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
 
         // Pull field definition outside the loop — it doesn't change per item.
         $field_definition = $items->getFieldDefinition();
@@ -68,72 +67,15 @@ class DateRangeFormat extends DateRangeCustomFormatter {
 
             // Add status if enabled.
             if ($showdatestatus) {
-                $status = '';
-                $status_class = '';
 
-                if ($datetime_type === 'date') {
-                    // Date-only field: strip time, compare as Ymd strings.
-                    // Avoids timezone shifts that occur when converting
-                    // date-only values to Unix timestamps.
-                    $now_compare   = $now_dt->format('Ymd');
-                    $start_compare = $has_start ? $start_date->format('Ymd') : NULL;
-                    $end_compare   = $has_end   ? $end_date->format('Ymd')   : NULL;
-                } else {
-                    // Datetime field: compare full Unix timestamps.
-                    $now_compare   = $now_dt->getTimestamp();
-                    $start_compare = $has_start ? $start_date->getTimestamp() : NULL;
-                    $end_compare   = $has_end   ? $end_date->getTimestamp()   : NULL;
-                }
-
-                if ($this->startDateIsDisplayed() && $this->endDateIsDisplayed()) {
-                    // Normal full-range comparison.
-                    if ($now_compare < $start_compare) {
-                        $status = $this->t('Upcoming');
-                        $status_class = 'upcoming';
-                    } elseif ($now_compare > $end_compare) {
-                        $status = $this->t('Past');
-                        $status_class = 'past';
-                    } else {
-                        $status = $this->t('Ongoing');
-                        $status_class = 'ongoing';
-                    }
-                } elseif ($this->startDateIsDisplayed()) {
-                    // Start only: upcoming if not yet reached, past otherwise.
-                    if ($now_compare < $start_compare) {
-                        $status = $this->t('Upcoming');
-                        $status_class = 'upcoming';
-                    } elseif ($now_compare > $start_compare) {
-                        $status = $this->t('Past');
-                        $status_class = 'past';
-                    } else {
-                        $status = $this->t('Ongoing');
-                        $status_class = 'ongoing';
-                    }
-                } elseif ($this->endDateIsDisplayed()) {
-                    // End only: past if end has passed, ongoing otherwise.
-                    if ($now_compare < $end_compare) {
-                        $status = $this->t('Upcoming');
-                        $status_class = 'upcoming';
-                    } elseif ($now_compare > $end_compare) {
-                        $status = $this->t('Past');
-                        $status_class = 'past';
-                    } else {
-                        $status = $this->t('Ongoing');
-                        $status_class = 'ongoing';
-                    }
-                }
-
-                $element['status'] = [
-                    '#type' => 'html_tag',
-                    '#tag' => 'span',
-                    '#attributes' => [
-                        'class' => [
-                            'date__status',
-                            'date__status--' . $status_class,
-                        ],
-                    ],
-                    '#value' => $status,
-                ];
+                // Delegate to trait — all status logic lives in one place.
+                $element['status'] = $this->checkDateStatus(
+                    $datetime_type,
+                    $start_date,
+                    $end_date,
+                    $this->startDateIsDisplayed(),
+                    $this->endDateIsDisplayed(),
+                );
             } else {
                 // Start date.
                 if ($this->startDateIsDisplayed()) {

@@ -1,0 +1,146 @@
+{#
+/**
+ * @file
+ * Template for Helperbox Hero Banner Block.
+ *
+ * Available variables:
+ *   - page_type: The current page entity type.
+ *       Possible values:
+ *       - 'node'          : A node detail page.
+ *       - 'taxonomy_term' : A taxonomy term listing page.
+ *       - 'user'          : A user profile page.
+ *       - 'view'          : A view listing page.
+ *       - 'entity'        : Any other content entity page.
+ *       - 'other'         : Unknown or custom route.
+ *
+ *   - entity_type: The entity type machine name e.g. 'node', 'taxonomy_term'.
+ *
+ *   - entity_bundle: The entity bundle machine name e.g. 'article', 'tags'.
+ *
+ *   - banner_data: Structured data for the current page entity.
+ *       - id:           Entity ID.
+ *       - title:        Entity label or node title.
+ *       - bundle:       Entity bundle machine name.
+ *       - url:          Raw canonical URL e.g. /taxonomy/term/38.
+ *       - alias:        Clean alias URL e.g. /news/my-category. Falls back
+ *                       to raw url if no alias exists.
+ *       - description:  Resolved description from field_highlight_text,
+ *                       description, or body summary (in that priority order).
+ *       - banner_image: Structured media info array from MediaHelper, or
+ *                       NULL if no image is set or media was deleted.
+ *       - terms:        (Node only) Taxonomy terms referenced by the node,
+ *                       keyed by vocabulary machine name. Each entry is an
+ *                       array of term items with keys:
+ *                       - id:    Term ID.
+ *                       - name:  Term label.
+ *                       - url:   Raw term URL e.g. /taxonomy/term/38.
+ *                       - alias: Clean alias URL, falls back to raw url.
+ *       - parent_ids:   (Taxonomy term only) Keyed array of parent
+ *                       TermInterface objects. Empty if top-level term.
+ *       - display_name: (User only) The user's display name.
+ *       - view_id:      (View only) The view machine name.
+ *       - display_id:   (View only) The view display machine name.
+ */
+#}
+
+{% set page_mode = page_type in ['node', 'user'] ? 'single' : 'listing' %}
+
+<div class="block-herobanner content-grid banner-{{entity_type}}-{{entity_bundle}}">
+
+	{% if banner_data.edit_content %}
+		<div class="edit-button-wrapper">
+			<a href="{{ banner_data.edit_content }}">
+				{{ 'Edit'|t  }}</a>
+		</div>
+	{% endif %}
+
+	{% if page_mode == 'listing' %}
+		<section class="listing-banner content-grid">
+			<div class='title-container'>
+				<h1 class="banner-title">{{banner_data.title}}</h1>
+				<div class="banner-description">
+					{{ banner_data.summary|raw }}
+				</div>
+				{% if banner_data.cta %}
+					{{ banner_data.cta }}
+				{% endif %}
+			</div>
+		</section>
+	{% else %}
+
+		{% if banner_data.show_breadcrumb or banner_data.show_header or banner_data.cta %}
+			<section class="detail-header content-grid">
+				<div>
+
+					{% if banner_data.show_breadcrumb %}
+						<div class='breadcrumbs'>
+							{{ drupal_block('system_breadcrumb_block') }}
+						</div>
+					{% endif %}
+
+					<div class="first-row">
+						{% if banner_data.terms %}
+							<div class="category">
+								{% for term in banner_data.terms %}
+									<span class="category--{{ term.bundle }} bundle-type-{{ term.type }}">
+										{{ term.label }}
+									</span>
+								{% endfor %}
+							</div>
+						{% endif %}
+
+						{% if banner_data.field.field_designation %}
+							<div class="field--field_designation">
+								<span>{{ banner_data.field.field_designation }}</span>
+							</div>
+						{% endif %}
+
+						{% if banner_data.date_status %}
+							<div class="date-range-status">
+								{{ banner_data.date_status}}
+							</div>
+						{% endif %}
+					</div>
+
+					{% if banner_data.show_header %}
+						<h1 class="main-title">
+							{{ banner_data.title }}
+						</h1>
+
+						<div class="highlighted-text" summary-limit="300">
+							{{ banner_data.summary|raw }}
+						</div>
+					{% endif %}
+
+					{% if banner_data.field.field_additional_role %}
+						<div class="first-row">
+							<div class="field--field_additional_role">
+								<span>{{ banner_data.field.field_additional_role }}</span>
+							</div>
+						</div>
+					{% endif %}
+
+					{% if banner_data.cta %}
+						{{ banner_data.cta }}
+					{% endif %}
+
+				</div>
+			</section>
+		{% endif %}
+
+		{% if banner_data.show_socialshare %}
+			<div class="social-share">
+				<div class="wrapper">
+					<span class="share-label-wrapper">
+						<span class="label">
+							Share
+						</span>
+					</span>
+					{{ drupal_block('social_sharing_block') }}
+				</div>
+			</div>
+		{% endif %}
+
+	{% endif %}
+
+</div>

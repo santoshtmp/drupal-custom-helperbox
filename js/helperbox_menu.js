@@ -25,39 +25,42 @@ document.addEventListener("DOMContentLoaded", () => {
         .forEach((el) => el.classList.remove("open-level"));
     }, 300);
   };
+  
+  if (mmContainer && openBtn && overlay) {
 
-  openBtn.addEventListener("click", openNav);
-  overlay.addEventListener("click", closeNav);
+    openBtn.addEventListener("click", openNav);
+    overlay.addEventListener("click", closeNav);
 
-  // ESC key close
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      closeNav();
-    }
-  });
-
-  // Precise Class-Based Delegation
-  mmContainer.addEventListener("click", (e) => {
-    const nextBtn = e.target.closest(".mm-btn--next");
-    const backBtn = e.target.closest(".back-btn");
-
-    if (backBtn) {
-      const currentPanel = backBtn.closest(".panel");
-      if (currentPanel) {
-        currentPanel.classList.remove("open-level");
+    // ESC key close
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        closeNav();
       }
-      return;
-    }
+    });
 
-    if (nextBtn) {
-      const parentBtn = nextBtn.closest(".mm-btn");
-      if (!parentBtn) return;
+    // Precise Class-Based Delegation
+    mmContainer.addEventListener("click", (e) => {
+      const nextBtn = e.target.closest(".mm-btn--next");
+      const backBtn = e.target.closest(".back-btn");
 
-      const nextPanel = parentBtn.nextElementSibling;
-
-      if (nextPanel && nextPanel.classList.contains("panel")) {
-        nextPanel.classList.add("open-level");
+      if (backBtn) {
+        const currentPanel = backBtn.closest(".panel");
+        if (currentPanel) {
+          currentPanel.classList.remove("open-level");
+        }
+        return;
       }
-    }
-  });
+
+      if (nextBtn) {
+        const parentBtn = nextBtn.closest(".mm-btn");
+        if (!parentBtn) return;
+
+        const nextPanel = parentBtn.nextElementSibling;
+
+        if (nextPanel && nextPanel.classList.contains("panel")) {
+          nextPanel.classList.add("open-level");
+        }
+      }
+    });
+  }
 });

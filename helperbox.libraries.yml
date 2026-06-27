@@ -86,3 +86,11 @@ helperbox_menu:
     - core/jquery
     - core/drupal
     - core/drupalSettings
+
+content_data_import:
+  js:
+    js/helperbox_contentdataimport.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once

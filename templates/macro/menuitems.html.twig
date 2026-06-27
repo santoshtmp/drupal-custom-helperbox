@@ -54,18 +54,15 @@
 				<div class="menu__title">{{ item.title }}</div>
 				{% endset %}
 
-				{# Get URL string if available #}
-				{% set href = item.url ? item.url.toString : '' %}
-
 				<li
 					{{ item.attributes.addClass(item_classes) }}>
 					{# Render as link if URL exists, otherwise as plain span #}
-					{% if href %}
-						<a href="{{ href }}" class="menu-item-link">
+					{% if not item.nolink %}
+						<a {{ item.link_attributes }} >
 							{{ menu_item_content|raw }}
 						</a>
 					{% else %}
-						<span class="menu-item-link menu-item-no-link">
+						<span {{ item.link_attributes.addClass('menu-item-no-link') }}>
 							{{ menu_item_content|raw }}
 						</span>
 					{% endif %}

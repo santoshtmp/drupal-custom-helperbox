@@ -46,13 +46,13 @@ class DateRangeSelector extends FilterPluginBase {
                 continue;
             }
 
-            // Get a human-readable group label.
-            try {
-                $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
-                $group_label = $group . ' - ' . (string) $entity_type->getLabel();
-            } catch (\Exception $e) {
-                $group_label = $group . ' - ' . $entity_type_id;
-            }
+            // // Get a human-readable group label.
+            // try {
+            //     $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
+            //     $group = $group . ' - ' . (string) $entity_type->getLabel();
+            // } catch (\Exception $e) {
+            //     $group = $group . ' - ' . $entity_type_id;
+            // }
 
             // Register the filter for this date range field.
             // Key is unique per field to avoid collisions.
@@ -67,7 +67,7 @@ class DateRangeSelector extends FilterPluginBase {
                     'field'  => $field_name . '_value', // Sets $this->realField in the plugin.
                     'id'     => 'helperbox_date_range_selector',
                 ],
-                'group'  => $group_label,
+                'group'  => $group,
             ];
         }
         return $data;
@@ -88,6 +88,9 @@ class DateRangeSelector extends FilterPluginBase {
 
         // Non-exposed (admin) mode — stored at top level.
         $options['date_mode'] = ['default' => 'both'];
+
+        // Define the custom expose option for CSS classes
+        $options['expose']['contains']['field_classes'] = ['default' => ''];
 
         return $options;
     }
@@ -116,6 +119,43 @@ class DateRangeSelector extends FilterPluginBase {
     }
 
     /**
+     * Build expose configuration form.
+     * {@inheritdoc}
+     */
+    public function buildExposeForm(&$form, FormStateInterface $form_state) {
+        parent::buildExposeForm($form, $form_state);
+
+        // Add the custom textfield for CSS classes
+        $form['expose']['field_classes'] = [
+            '#type' => 'textfield',
+            '#title' => $this->t('Filter field classes'),
+            '#default_value' => $this->options['expose']['field_classes'] ?? '',
+            '#description' => $this->t('Enter custom CSS classes for the exposed front-end element, separated by spaces.'),
+        ];
+    }
+
+    /**
+     * {@inheritdoc}
+     * 
+     * FIX: Override this to prevent the base class from rendering an empty 
+     * <div class="views-left-30"></div> which breaks the Views UI modal layout.
+     */
+    public function showOperatorForm(&$form, FormStateInterface $form_state) {
+        // Do nothing. We have no operators, so we don't want the left column wrapper.
+    }
+
+    /**
+     * {@inheritdoc}
+     * 
+     * FIX: Override this to prevent wrapping the value form in 'views-right-70'.
+     * Since we removed the left column, the value form should take 100% width.
+     */
+    protected function showValueForm(&$form, FormStateInterface $form_state) {
+        $this->valueForm($form, $form_state);
+        // We intentionally do NOT add the 'views-right-70' wrapper here.
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function valueForm(&$form, FormStateInterface $form_state) {
@@ -125,12 +165,18 @@ class DateRangeSelector extends FilterPluginBase {
         //     $timestamp = strtotime($value);
         //     $value     = $timestamp ? date('Y-m-d', $timestamp) : '';
         // }
+
+        // Access the option correctly (remove 'contains') and fix explode arguments
+        $field_classes = $this->options['expose']['field_classes'] ?? '';
+        $classes = $field_classes ? array_filter(explode(' ', $field_classes)) : [];
+        $classes = array_merge($classes, ['helperbox-date-range-selector', 'form-date']);
+
         $form['value'] = [
             '#type'          => 'textfield', //'date',
             '#title'         => $this->t('Date'),
             '#default_value' => $value,
             '#attributes'    => [
-                'class' => ['helperbox-date-range-selector', 'form-date'],
+                'class' => $classes,
             ],
             '#size'          => 20,
             '#placeholder'   => $this->t('YYYY-MM-DD'),

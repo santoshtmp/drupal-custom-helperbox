@@ -14,6 +14,7 @@ function helperbox_theme() {
     $theme['helperbox_menu'] = [
         'variables' => [
             'menu_layout' => '',
+            'menu_region_location' => '',
             'menu_layout_location' => '',
             'menu_layout_subtype' => '',
             'mobile_menu_panel_title' => '',
@@ -21,7 +22,7 @@ function helperbox_theme() {
             'menu_title' => '',
             'menu_items' => [],
             'social_link_title' => '',
-            'social_links' => '',
+            'other_variables' => [],
             'background_image' => '',
             'attributes' => [],
         ],
@@ -87,6 +88,15 @@ function helperbox_theme() {
         ],
         'template' => 'helperbox-repeatedcontent',
     ];
+    $theme['helperbox_block_herobanner'] = [
+        'variables' => [
+            'page_type' => '',
+            'entity_type' => '',
+            'entity_bundle' => '',
+            'banner_data' => [],
+        ],
+        'template' => 'helperbox-block-herobanner',
+    ];
     $theme['helperbox_renderblock'] = [
         'variables' => [
             'content' => '',
@@ -111,6 +121,7 @@ function helperbox_theme() {
             'url_type' => 'internal',
             'is_external' => FALSE,
             'is_no_link' => FALSE,
+            'wrapper_attributes' => [],
         ],
         'template' => 'helperbox-add-cta',
     ];
@@ -128,9 +139,26 @@ function helperbox_theme() {
  */
 function helperbox_theme_suggestions_helperbox_menu(array $variables) {
     $suggestions = [];
-    $suggestions[] = 'helperbox_menu__layout_' . $variables['menu_layout'];
+    $template_layout_suggestion = 'helperbox_menu__layout_' . $variables['menu_layout'];
+    $suggestions[] = $template_layout_suggestion;
+
+    // Add menu region location suggestion if available.
+    $menu_region_location = $variables['menu_region_location'] ?? '';
+    if ($menu_region_location) {
+        $template_layout_region_suggestion = $template_layout_suggestion . '__region_' . str_replace([' ', '-'], '_', $menu_region_location);
+        $suggestions[] = $template_layout_region_suggestion;
+
+        // Add menu type suggestion if menu region location is available.
+        $menu_type = $variables['menu_type'] ?? '';
+        if ($menu_type) {
+            $template_layout_region_type_suggestion = $template_layout_region_suggestion . '__menu_' . str_replace([' ', '-'], '_', $menu_type);
+            $suggestions[] = $template_layout_region_type_suggestion;
+        }
+    }
+
+    // Add menu type suggestion without region location as well.
     $suggestions[] = 'helperbox_menu__menu_' . str_replace([' ', '-'], '_', $variables['menu_type']);
-    $suggestions[] = 'helperbox_menu__layout_' . $variables['menu_layout'] . '__menu_' . str_replace([' ', '-'], '_', $variables['menu_type']);
+    $suggestions[] = $template_layout_suggestion . '__menu_' . str_replace([' ', '-'], '_', $variables['menu_type']);
 
     return $suggestions;
 }
@@ -182,6 +210,22 @@ function helperbox_theme_suggestions_helperbox_content(array $variables) {
         $suggestions[] = 'helperbox_content__layout_' . $variables['block_layout'];
     }
 
+    return $suggestions;
+}
+
+/**
+ * Implements template suggestion for helperbox_block_herobanner
+ */
+function helperbox_theme_suggestions_helperbox_block_herobanner(array $variables) {
+    $suggestions = [];
+    $entity_type = $variables['entity_type'] ?? '';
+    if ($entity_type) {
+        $suggestions[] = 'helperbox_block_herobanner__' . $entity_type;
+    }
+    $entity_bundle = $variables['entity_bundle'] ?? '';
+    if ($entity_type && $entity_bundle) {
+        $suggestions[] = 'helperbox_block_herobanner__' . $entity_type . '__' . $entity_bundle;
+    }
     return $suggestions;
 }
 
@@ -335,5 +379,42 @@ function helperbox_theme_suggestions_colorbox_view_mode_formatter_alter(array &$
     if ($node instanceof \Drupal\node\NodeInterface) {
         $suggestions[] = 'colorbox_view_mode_formatter__node_' . $node->bundle();
         $suggestions[] = 'colorbox_view_mode_formatter__node_' . $node->bundle() . '_' . $node->id();
+    }
+}
+
+// Implements hook_theme_suggestions_HOOK_alter().
+// <!-- THEME HOOK: 'photoswipe_image_formatter' -->
+function helperbox_theme_suggestions_photoswipe_image_formatter_alter(array &$suggestions, array $variables) {
+
+    if (!empty($variables['item'])) {
+        $field_name = $variables['item']->getFieldDefinition()->getName();
+        $suggestions[] = 'photoswipe_image_formatter__field__' . $field_name;
+    }
+
+    $entity = $variables['entity'];
+    if ($entity instanceof \Drupal\Core\Entity\EntityInterface) {
+        $suggestions[] = 'photoswipe_image_formatter__' . $entity->getEntityTypeId() . '__' . $entity->bundle();
+
+        if ($entity->id()) {
+            $suggestions[] = 'photoswipe_image_formatter__' . $entity->getEntityTypeId() . '__' . $entity->bundle() . '__' . $entity->id();
+        }
+    }
+}
+
+/**
+ * Implements hook_config_schema_info_alter().
+ *
+ * Adds the missing 'description' key to core's views.field.date schema
+ * to account for stray markup Drupal core persists into config when a
+ * Date field's format is set to "Time ago" / "Time hence".
+ *
+ * @see https://www.drupal.org/project/drupal/issues/... (core bug)
+ */
+function helperbox_config_schema_info_alter(array &$definitions) {
+    if (isset($definitions['views.field.date']['mapping']['time_diff']['mapping'])) {
+        $definitions['views.field.date']['mapping']['time_diff']['mapping']['description'] = [
+            'type' => 'string',
+            'label' => 'Description',
+        ];
     }
 }

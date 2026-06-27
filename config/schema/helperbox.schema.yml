@@ -47,6 +47,9 @@ block.settings.helperbox_menu_block:
     menu_layout:
       type: string
       label: "Menu layout"
+    menu_region_location:
+      type: string
+      label: "Menu region location"
     menu_layout_subtype:
       type: string
       label: "Menu layout subtype"
@@ -66,6 +69,11 @@ block.settings.helperbox_menu_block:
     menu_items:
       type: sequence
       label: "Menu items"
+      sequence:
+        type: string
+    other_variables:
+      type: sequence
+      label: "Other variables"
       sequence:
         type: string
     background_image:
@@ -575,3 +583,23 @@ views.filter.helperbox_date_range_selector:
     date_mode:
       type: string
       label: "Date mode"
+
+views.filter.helperbox_date_created_selector:
+  type: views_filter
+  label: HelperBox Date Selector filter
+  mapping:
+    date_selection_type:
+      type: string
+      label: "select type"
+
+# View helperbox_display_extender
+views.display_extender.helperbox_display_extender:
+  type: mapping
+  label: "HelperBox Views Display Extender"
+  mapping:
+    helperbox_enable_default_banner:
+      type: boolean
+      label: "HelperBox Default Banner Block Enable"
+    helperbox_banner_block_content_id:
+      type: string
+      label: "HelperBox Banner Block Content ID"

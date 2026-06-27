@@ -98,7 +98,7 @@ class LinkCTAFormatter extends FormatterBase {
                 '#cta_target'  => $target,
                 '#is_external' => $is_external,
                 '#is_no_link'  => FALSE,
-                '#attributes'  => [],
+                '#attributes'  => new \Drupal\Core\Template\Attribute([]),
             ];
         }
 

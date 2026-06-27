@@ -3,6 +3,8 @@
 namespace Drupal\helperbox\Helper;
 
 use Drupal\node\Entity\NodeType;
+use Drupal\taxonomy\Entity\Vocabulary;
+use Drupal\taxonomy\Entity\Term;
 
 /**
  * Util Helper class
@@ -53,6 +55,225 @@ class UtilHelper {
         return $contentTypeOptions;
     }
 
+
+    public static function get_all_term_vocabularies() {
+
+        $vocabularies = Vocabulary::loadMultiple();
+
+        $options = [];
+
+        foreach ($vocabularies as $machine_name => $vocabulary) {
+            $options[$machine_name] = $vocabulary->label();
+        }
+
+        return $options;
+    }
+
+
+    public static function get_all_terms($vid) {
+
+        $tids = \Drupal::entityQuery('taxonomy_term')
+            ->condition('vid', $vid)
+            ->accessCheck(FALSE)
+            ->execute();
+
+        $terms = Term::loadMultiple($tids);
+
+        $options = [];
+
+        foreach ($terms as $term) {
+            $options[$term->id()] = $term->getName();
+        }
+
+        return $options;
+    }
+
+    // -------------------------------------------------------
+    // Get or create taxonomy term by UUID + name.
+    // -------------------------------------------------------
+    public static function getOrCreateTerm(string $name, string $uuid, string $vocabulary, $data = []): ?int {
+        $storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+
+        $existing = $storage->loadByProperties(['uuid' => $uuid]);
+        if ($existing) {
+            return (int) reset($existing)->id();
+        }
+
+        $existing = $storage->loadByProperties(['name' => $name, 'vid' => $vocabulary]);
+        if ($existing) {
+            return (int) reset($existing)->id();
+        }
+
+        try {
+            $term = $storage->create([
+                'name' => $name,
+                'vid'  => $vocabulary,
+                'uuid' => $uuid,
+            ]);
+            $term->save();
+            return (int) $term->id();
+        } catch (\Exception $e) {
+            \Drupal::logger('helperbox')->error(
+                'Failed to create term @name: @msg',
+                ['@name' => $name, '@msg' => $e->getMessage()]
+            );
+            return NULL;
+        }
+    }
+
+    // -------------------------------------------------------
+    // Download remote image, create file + media entity.
+    // -------------------------------------------------------
+    public static function getOrCreateMediaImage(string $remoteUrl, string $name): ?int {
+        $mediaStorage = \Drupal::entityTypeManager()->getStorage('media');
+        $fileStorage  = \Drupal::entityTypeManager()->getStorage('file');
+        $fileSystem   = \Drupal::service('file_system');
+
+        try {
+            // --- Resolve original path from remote URL ---
+            // e.g. http://source.test/sites/default/files/2026-03/team.png
+            //   => public://2026-03/team.png
+            $sitesFilesPath = '/sites/default/files/';
+            $pos = strpos($remoteUrl, $sitesFilesPath);
+
+            if ($pos === FALSE) {
+                \Drupal::logger('helperbox')->error(
+                    'Cannot determine original path from URL: @url',
+                    ['@url' => $remoteUrl]
+                );
+                return NULL;
+            }
+
+            $relativePath = urldecode(substr($remoteUrl, $pos + strlen($sitesFilesPath)));
+            $destination  = 'public://' . $relativePath;
+            $directory    = 'public://' . dirname($relativePath);
+
+            $fileSystem->prepareDirectory(
+                $directory,
+                \Drupal\Core\File\FileSystemInterface::CREATE_DIRECTORY |
+                    \Drupal\Core\File\FileSystemInterface::MODIFY_PERMISSIONS
+            );
+
+            // --- Get or create file entity ---
+            $existingFiles = $fileStorage->loadByProperties(['uri' => $destination]);
+            if ($existingFiles) {
+                $file = reset($existingFiles);
+                \Drupal::logger('helperbox')->info(
+                    'Reusing existing file: @uri',
+                    ['@uri' => $destination]
+                );
+            } else {
+                \Drupal::logger('helperbox')->info(
+                    'Downloading: @url => @dest',
+                    ['@url' => $remoteUrl, '@dest' => $destination]
+                );
+
+                $contents = \Drupal::httpClient()->get($remoteUrl, ['timeout' => 30])
+                    ->getBody()->getContents();
+
+                if (empty($contents)) {
+                    \Drupal::logger('helperbox')->error(
+                        'Empty file downloaded from @url',
+                        ['@url' => $remoteUrl]
+                    );
+                    return NULL;
+                }
+
+                $uri = $fileSystem->saveData(
+                    $contents,
+                    $destination,
+                    \Drupal\Core\File\FileSystemInterface::EXISTS_REPLACE
+                );
+
+                if (!$uri) {
+                    \Drupal::logger('helperbox')->error(
+                        'Failed to save file to @dest',
+                        ['@dest' => $destination]
+                    );
+                    return NULL;
+                }
+
+                // Detect mime type.
+                $mimeType = \Drupal::service('file.mime_type.guesser')->guessMimeType($uri);
+
+                /** @var \Drupal\file\FileInterface $file */
+                $file = $fileStorage->create([
+                    'uri'      => $uri,
+                    'filename' => basename($uri),
+                    'filemime' => $mimeType,
+                    'filesize' => strlen($contents),
+                    'status'   => 1,
+                    'uid'      => 1,
+                    'created'  => \Drupal::time()->getRequestTime(),
+                    'changed'  => \Drupal::time()->getRequestTime(),
+                ]);
+                $file->setPermanent();
+                $file->save();
+
+                \Drupal::logger('helperbox')->info(
+                    'File saved: fid=@fid uri=@uri mime=@mime size=@size',
+                    [
+                        '@fid'  => $file->id(),
+                        '@uri'  => $uri,
+                        '@mime' => $mimeType,
+                        '@size' => strlen($contents),
+                    ]
+                );
+            }
+
+            // Ensure file is permanent.
+            if (!$file->isPermanent()) {
+                $file->setPermanent();
+                $file->save();
+            }
+
+            // --- Get or create media entity ---
+            $existingMedia = $mediaStorage->loadByProperties([
+                'bundle'                      => 'image',
+                'field_media_image.target_id' => $file->id(),
+            ]);
+            if ($existingMedia) {
+                $media = reset($existingMedia);
+                \Drupal::logger('helperbox')->info(
+                    'Reusing existing media: mid=@mid',
+                    ['@mid' => $media->id()]
+                );
+                return (int) $media->id();
+            }
+
+            /** @var \Drupal\media\MediaInterface $media */
+            $media = $mediaStorage->create([
+                'bundle'            => 'image',
+                'name'              => $name,
+                'status'            => 1,
+                'uid'               => 1,
+                'created'           => \Drupal::time()->getRequestTime(),
+                'changed'           => \Drupal::time()->getRequestTime(),
+                'field_media_image' => [
+                    'target_id' => $file->id(),
+                    'alt'       => $name,
+                    'title'     => $name,
+                    'width'     => NULL,
+                    'height'    => NULL,
+                ],
+            ]);
+            $media->save();
+
+            \Drupal::logger('helperbox')->info(
+                'Media created: mid=@mid name=@name fid=@fid',
+                ['@mid' => $media->id(), '@name' => $name, '@fid' => $file->id()]
+            );
+
+            return (int) $media->id();
+        } catch (\Exception $e) {
+            \Drupal::logger('helperbox')->error(
+                'getOrCreateMediaImage failed for @url: @msg',
+                ['@url' => $remoteUrl, '@msg' => $e->getMessage()]
+            );
+            return NULL;
+        }
+    }
+
     /**
      * Converts bytes into a human-readable format or a specific unit.
      *
@@ -91,6 +312,27 @@ class UtilHelper {
         $converted = $bytes / pow(1024, $i);
 
         return round($converted, 2) . ' ' . $sizeunit;
+    }
+
+    /**
+     * Delete all taxonomy terms from the department vocabulary.
+     */
+    public static function delete_taxonomy_terms($taxonomy) {
+        $storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+
+        $tids = \Drupal::entityQuery('taxonomy_term')
+            ->accessCheck(FALSE)
+            ->condition('vid', $taxonomy)
+            ->execute();
+
+        if (!empty($tids)) {
+            $terms = $storage->loadMultiple($tids);
+            $storage->delete($terms);
+        }
+
+        return t('@count terms deleted from department vocabulary.', [
+            '@count' => count($tids),
+        ]);
     }
 
     // END
